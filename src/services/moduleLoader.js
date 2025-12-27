@@ -8,9 +8,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export class ModuleLoader {
-  constructor(baseDir) {
+  constructor(baseDir, logCallback) {
     this.baseDir = baseDir || process.cwd();
     this.cache = new Map();
+    this.logCallback = logCallback || console.log;
   }
 
   resolvePath(filePath) {
@@ -59,12 +60,40 @@ export class ModuleLoader {
       return fetch(url, options);
     };
 
+    // Create a custom console that captures logs
+    const customConsole = {
+      log: (...args) => {
+        const message = args.map(arg => 
+          typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+        ).join(' ');
+        this.logCallback(`[MODULE] ${message}`);
+      },
+      error: (...args) => {
+        const message = args.map(arg => 
+          typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+        ).join(' ');
+        this.logCallback(`[MODULE ERROR] ${message}`);
+      },
+      warn: (...args) => {
+        const message = args.map(arg => 
+          typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+        ).join(' ');
+        this.logCallback(`[MODULE WARN] ${message}`);
+      },
+      info: (...args) => {
+        const message = args.map(arg => 
+          typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+        ).join(' ');
+        this.logCallback(`[MODULE INFO] ${message}`);
+      }
+    };
+
     // Create a context to run the module in
     const context = {
       // Provide working fetch implementation
       fetch: fetch,
       fetchv2: fetchv2,
-      console: console,
+      console: customConsole,
       JSON: JSON,
       Map: Map,
       Set: Set,

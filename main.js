@@ -14,6 +14,32 @@ let moduleWatcher = null;
 let currentModulePath = null;
 let currentModuleName = null;
 
+// Settings file for persisting user preferences
+const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+
+function loadSettings() {
+  try {
+    if (fs.existsSync(settingsPath)) {
+      return JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('Failed to load settings:', e);
+  }
+  return {};
+}
+
+function saveSettings(settings) {
+  try {
+    const dir = path.dirname(settingsPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+  } catch (e) {
+    console.error('Failed to save settings:', e);
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -58,7 +84,7 @@ function createLogsWindow() {
 }
 
 async function initJSContext() {
-  jsContext = new JSContext();
+  jsContext = new JSContext(log);
   const modulesDir = path.join(__dirname, 'modules');
   await jsContext.loadModulesFromDirectory(modulesDir);
 }
@@ -91,13 +117,21 @@ function log(message) {
 ipcMain.handle('get-modules', () => jsContext.getLoadedModules());
 
 ipcMain.handle('pick-file', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
+  const settings = loadSettings();
+  const dialogOptions = {
     properties: ['openFile'],
     filters: [
       { name: 'JavaScript', extensions: ['js'] },
       { name: 'All Files', extensions: ['*'] }
     ]
-  });
+  };
+  
+  // Set default path to last used directory if available
+  if (settings.lastModuleDirectory) {
+    dialogOptions.defaultPath = settings.lastModuleDirectory;
+  }
+  
+  const result = await dialog.showOpenDialog(mainWindow, dialogOptions);
   
   if (result.canceled || result.filePaths.length === 0) {
     return { canceled: true };
@@ -105,6 +139,10 @@ ipcMain.handle('pick-file', async () => {
 
   const filePath = result.filePaths[0];
   log(`[INFO] File selected: ${filePath}`);
+  
+  // Save the directory for next time
+  settings.lastModuleDirectory = path.dirname(filePath);
+  saveSettings(settings);
   
   try {
     // Stop watching previous file

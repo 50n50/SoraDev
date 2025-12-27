@@ -33,9 +33,9 @@ function parseJSON(value) {
 }
 
 export class JSContext {
-  constructor() {
+  constructor(logCallback) {
     const baseDir = path.resolve(__dirname, '../../..');
-    this.loader = new ModuleLoader(baseDir);
+    this.loader = new ModuleLoader(baseDir, logCallback);
     this.providers = new ProviderRegistry();
     this.cache = {
       search: new Map(),

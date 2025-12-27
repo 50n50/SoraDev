@@ -69,6 +69,9 @@
     .log-entry.success { color: #4caf50; }
     .log-entry.error { color: #ff6b6b; }
     .log-entry.warning { color: #ffb74d; }
+    .log-entry.module { color: #bb86fc; }
+    .log-entry.module-error { color: #ff6b6b; font-weight: 600; }
+    .log-entry.module-warn { color: #ffb74d; }
     
     ::-webkit-scrollbar {
       width: 8px;
@@ -103,6 +106,12 @@
       
       if (message.includes('[SUCCESS]') || message.includes('loaded')) {
         entry.classList.add('success');
+      } else if (message.includes('[MODULE ERROR]')) {
+        entry.classList.add('module-error');
+      } else if (message.includes('[MODULE WARN]')) {
+        entry.classList.add('module-warn');
+      } else if (message.includes('[MODULE')) {
+        entry.classList.add('module');
       } else if (message.includes('[ERROR]') || message.includes('error') || message.includes('Error')) {
         entry.classList.add('error');
       } else if (message.includes('[INFO]')) {
