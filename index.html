@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sora Module Developer</title>
+  <link href="https://rsms.me/inter/inter.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #0c0c0c;
+      color: #fff;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(49.63% 57.02% at 50% -7.2%, rgba(199, 64, 80, 0.40) 0%, rgba(199, 64, 80, 0.30) 15%, rgba(199, 64, 80, 0.22) 30%, rgba(199, 64, 80, 0.15) 45%, rgba(199, 64, 80, 0.10) 60%, rgba(199, 64, 80, 0.05) 75%, rgba(0, 0, 0, 0) 100%);
+      pointer-events: none;
+      z-index: 0;
+      filter: blur(40px);
+    }
+
+    #app {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+    }
+
+    .container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 40px;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+      overflow-y: auto;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin: 25px 0 15px 0;
+      letter-spacing: -0.3px;
+    }
+
+    /* Header */
+    .header-section {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .title {
+      text-align: center;
+      font-size: 36px;
+      margin-bottom: 20px;
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .load-btn {
+      padding: 8px 16px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      color: #fff;
+      border-radius: 12px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+      font-family: inherit;
+    }
+
+    .load-btn:hover {
+      border-color: #c74050;
+      background: #242424;
+      color: #ffb3b3;
+    }
+
+    .module-name {
+      padding: 8px 16px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      color: #888;
+      border-radius: 12px;
+      font-size: 14px;
+      min-width: 150px;
+      text-align: center;
+    }
+
+    .module-name.active {
+      color: #4caf50;
+      border-color: #4caf50;
+    }
+
+    /* Search */
+    .search-wrapper {
+      position: relative;
+      margin-bottom: 30px;
+    }
+
+    .search-box {
+      width: 100%;
+      padding: 10px 12px;
+      background-color: #1a1a1a;
+      color: #fff;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.3s ease;
+      font-family: inherit;
+      caret-color: #c74050;
+    }
+
+    .search-box:focus {
+      border-color: #c74050;
+      background: #242424;
+    }
+
+    .search-box::placeholder {
+      color: #777;
+    }
+
+    /* Results/Items List */
+    .items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    .item-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .item-row:hover {
+      border-color: #c74050;
+      background: #242424;
+      box-shadow: 0 4px 12px rgba(199, 64, 80, 0.15), inset 0 0 0 1px rgba(199, 64, 80, 0.3);
+    }
+
+    .item-image {
+      flex-shrink: 0;
+      width: 40px;
+      height: 60px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #0c0c0c;
+      border: 1px solid #2a2a2a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .item-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .item-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .item-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .item-meta {
+      font-size: 12px;
+      color: #888;
+    }
+
+    /* Details Panel */
+    .detail-panel {
+      display: none;
+    }
+
+    .detail-panel.active {
+      display: block;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      color: #888;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+      font-family: inherit;
+      margin-bottom: 20px;
+    }
+
+    .back-btn:hover {
+      border-color: #c74050;
+      background: #242424;
+      color: #ffb3b3;
+    }
+
+    .poster-section {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .poster-img {
+      width: 120px;
+      height: 180px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      flex-shrink: 0;
+    }
+
+    .poster-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .poster-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .detail-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .detail-meta {
+      font-size: 14px;
+      color: #999;
+    }
+
+    .detail-desc {
+      font-size: 13px;
+      color: #bbb;
+      line-height: 1.6;
+    }
+
+    /* Episodes Grid */
+    .episodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      gap: 8px;
+      margin-bottom: 30px;
+    }
+
+    .episode-btn {
+      padding: 8px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      color: #999;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+      font-family: inherit;
+    }
+
+    .episode-btn:hover {
+      border-color: #c74050;
+      background: #242424;
+      color: #ffb3b3;
+    }
+
+    /* Stream Info */
+    .stream-section {
+      display: none;
+      padding: 16px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      margin-top: 20px;
+    }
+
+    .stream-section.active {
+      display: block;
+    }
+
+    .stream-info {
+      font-size: 12px;
+      color: #ccc;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      line-height: 1.8;
+      word-break: break-all;
+    }
+
+    .stream-info strong {
+      color: #fff;
+      display: block;
+      margin-top: 10px;
+      margin-bottom: 8px;
+    }
+
+    /* Loading & Empty States */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #888;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .loading {
+      display: none;
+    }
+
+    .loading.active {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      color: #888;
+    }
+
+    /* Scrollbar */
+    .container::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .container::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .container::-webkit-scrollbar-thumb {
+      background: #2a2a2a;
+      border-radius: 4px;
+    }
+
+    .container::-webkit-scrollbar-thumb:hover {
+      background: #3a3a3a;
+    }
+
+    .error {
+      display: none;
+      color: #ff6b6b;
+      font-size: 13px;
+      margin: 10px 0;
+    }
+
+    .error.active {
+      display: block;
+    }
+
+    /* Stream Modal */
+    .stream-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stream-modal.active {
+      display: flex;
+    }
+
+    .stream-modal-content {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      color: #fff;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+    }
+
+    .stream-modal-header {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+
+    .stream-modal-body {
+      font-size: 12px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      line-height: 1.8;
+      color: #bbb;
+      word-break: break-all;
+      max-height: 50vh;
+      overflow-y: auto;
+      background: #0c0c0c;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #2a2a2a;
+    }
+
+    .stream-modal-body strong {
+      color: #fff;
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 8px;
+    }
+
+    .stream-modal-footer {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #2a2a2a;
+      background: #242424;
+      color: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .modal-btn:hover {
+      border-color: #c74050;
+      background: #2a2a2a;
+      color: #ffb3b3;
+    }
+
+    /* Window Controls */
+    .window-controls {
+      position: fixed;
+      top: 0;
+      right: 0;
+      display: flex;
+      z-index: 9999;
+      -webkit-app-region: no-drag;
+    }
+
+    .titlebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 32px;
+      background: #0c0c0c;
+      -webkit-app-region: drag;
+      z-index: 9998;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    .window-btn {
+      width: 46px;
+      height: 32px;
+      background: transparent;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-app-region: no-drag;
+    }
+
+    .window-btn:hover {
+      background: #1a1a1a;
+      color: #fff;
+    }
+
+    .window-btn.close:hover {
+      background: #c74050;
+      color: #fff;
+    }
+
+    #app {
+      padding-top: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="titlebar"></div>
+  <div class="window-controls">
+    <button class="window-btn" id="minimizeBtn" title="Minimize">−</button>
+    <button class="window-btn" id="maximizeBtn" title="Maximize">□</button>
+    <button class="window-btn close" id="closeBtn" title="Close">×</button>
+  </div>
+  <div id="app">
+    <div class="container">
+      <div class="header-section">
+        <div class="title">Sora Module Developer</div>
+      </div>
+
+      <div class="controls">
+        <button class="load-btn" id="loadBtn">Load Module</button>
+        <div class="module-name" id="moduleInfo">No module</div>
+      </div>
+
+      <div class="error" id="searchError"></div>
+
+      <div class="search-wrapper">
+        <input type="text" class="search-box" id="searchInput" placeholder="Search...">
+      </div>
+
+      <div class="items-list" id="results"></div>
+
+      <div id="emptyState" class="empty-state">
+        <p>Load a module to get started</p>
+      </div>
+
+      <div class="detail-panel" id="detailView">
+        <button id="backBtn" class="back-btn">← Back to Search</button>
+        <div class="error" id="detailError"></div>
+        
+        <div class="poster-section">
+          <div class="poster-img">
+            <img id="posterImg" src="" alt="">
+          </div>
+          <div class="poster-info">
+            <div class="detail-title" id="detailTitle"></div>
+            <div class="detail-meta" id="detailMeta"></div>
+            <div class="detail-desc" id="detailDesc"></div>
+          </div>
+        </div>
+
+        <div id="episodesSection" style="display:none;">
+          <div class="section-title">Episodes</div>
+          <div class="loading" id="episodesLoading">
+            <span>Loading episodes...</span>
+          </div>
+          <div class="episodes-grid" id="episodesGrid"></div>
+        </div>
+
+        <div id="streamSection" class="stream-section">
+          <strong>Stream URL</strong>
+          <div class="stream-info" id="streamInfo"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stream Info Modal -->
+  <div class="stream-modal" id="streamModal">
+    <div class="stream-modal-content">
+      <div class="stream-modal-header">Stream Information</div>
+      <div class="stream-modal-body" id="streamModalBody"></div>
+      <div class="stream-modal-footer">
+        <button class="modal-btn" onclick="document.getElementById('streamModal').classList.remove('active')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/app.js"></script>
+</body>
+</html>
