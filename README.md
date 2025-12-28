@@ -2,19 +2,64 @@
 
 A Windows development port of the **Sora iOS/macOS streaming application**, built with Electron and vanilla JavaScript. Features a full UI that mirrors the native app's architecture, allowing you to develop and test Sora modules on Windows before deploying to iOS/macOS.
 
+## Setup & Installation
+
+### Prerequisites
+- **Node.js** (v16 or higher) - [Download here](https://nodejs.org/)
+- **npm** (comes with Node.js)
+- **Windows 10/11**
+
+### Installation Steps
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/SoraDev.git
+   cd SoraDev
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+   This will install all required packages including Electron, Electron Builder, and other dependencies.
+
+3. **Run in development mode**
+   ```bash
+   npm start
+   ```
+   This opens the app in development mode with DevTools enabled.
+
+### Building for Production
+
+To create a standalone executable:
+
+```bash
+# Build for Windows (creates .exe in dist/ folder)
+npm run build
+```
+
+Or use the alternative packager:
+
+```bash
+# Alternative build method
+npm run pack
+```
+
+The built application will be in the `dist/` folder.
+
+### Available Scripts
+
+- `npm start` - Run in development mode
+- `npm run dev` - Run with logging enabled
+- `npm run build` - Build production executable
+- `npm run pack` - Alternative packaging method
+
 ## Architecture
 
 - **Electron** - Cross-platform desktop app framework
 - **JSContext** - Module execution hub (ported from Swift)
 - **Module System** - Load and execute JavaScript module providers
 - **UI** - Search → Detail → Episodes → Stream workflow
-
-## Quick Start
-
-```bash
-npm install
-npm start
-```
 
 ## How It Works
 

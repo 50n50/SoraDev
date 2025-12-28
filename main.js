@@ -14,7 +14,6 @@ let moduleWatcher = null;
 let currentModulePath = null;
 let currentModuleName = null;
 
-// Settings file for persisting user preferences
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 
 function loadSettings() {
@@ -72,6 +71,7 @@ function createLogsWindow() {
     minHeight: 400,
     x: 100,
     y: 100,
+    frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -103,7 +103,6 @@ app.on('activate', () => {
   if (mainWindow === null) createWindow();
 });
 
-// Logging helper
 function log(message) {
   const timestamp = new Date().toLocaleTimeString();
   const logMsg = `[${timestamp}] ${message}`;
@@ -113,7 +112,6 @@ function log(message) {
   }
 }
 
-// IPC Handlers
 ipcMain.handle('get-modules', () => jsContext.getLoadedModules());
 
 ipcMain.handle('pick-file', async () => {
@@ -126,7 +124,6 @@ ipcMain.handle('pick-file', async () => {
     ]
   };
   
-  // Set default path to last used directory if available
   if (settings.lastModuleDirectory) {
     dialogOptions.defaultPath = settings.lastModuleDirectory;
   }
@@ -140,12 +137,10 @@ ipcMain.handle('pick-file', async () => {
   const filePath = result.filePaths[0];
   log(`[INFO] File selected: ${filePath}`);
   
-  // Save the directory for next time
   settings.lastModuleDirectory = path.dirname(filePath);
   saveSettings(settings);
   
   try {
-    // Stop watching previous file
     if (moduleWatcher) {
       moduleWatcher.close();
       moduleWatcher = null;
@@ -157,11 +152,9 @@ ipcMain.handle('pick-file', async () => {
     const loadedModule = await jsContext.loader.loadModule(filePath);
     jsContext.providers.register(moduleName, loadedModule);
     
-    // Store current module info
     currentModulePath = filePath;
     currentModuleName = moduleName;
     
-    // Watch for file changes
     moduleWatcher = fs.watch(filePath, async (eventType) => {
       if (eventType === 'change') {
         log(`[INFO] Module file changed, reloading: ${moduleName}`);
@@ -237,7 +230,6 @@ ipcMain.handle('stream', async (event, provider, url) => {
   }
 });
 
-// Window controls
 ipcMain.on('minimize-window', () => {
   if (mainWindow) mainWindow.minimize();
 });

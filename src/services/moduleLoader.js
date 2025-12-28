@@ -27,25 +27,16 @@ export class ModuleLoader {
       throw new Error(`Module not found: ${resolved}`);
     }
     
-    // Don't use cache - always reload for hot reloading support
-    // if (this.cache.has(resolved)) {
-    //   return this.cache.get(resolved);
-    // }
-
-    // Read the module file as text with timestamp to force fresh read
     const stats = fs.statSync(resolved);
     const moduleCode = fs.readFileSync(resolved, 'utf-8');
     console.log(`[ModuleLoader] Loading ${filePath} (modified: ${stats.mtime.toISOString()}, size: ${moduleCode.length} bytes)`);
     
-    // Remove any export statements to avoid issues
     const cleanCode = moduleCode
       .replace(/export\s*\{[^}]*\}/g, '')
       .replace(/export\s+default\s+/g, '')
       .replace(/export\s+(async\s+)?function/g, 'async function')
       .replace(/export\s+const/g, 'const');
 
-    // Custom fetchv2 function that matches the Sora module API
-    // fetchv2(url, headers={}, method='GET', body=null)
     const fetchv2 = async (url, headers = {}, method = 'GET', body = null) => {
       const options = {
         method: method,
@@ -60,7 +51,6 @@ export class ModuleLoader {
       return fetch(url, options);
     };
 
-    // Create a custom console that captures logs
     const customConsole = {
       log: (...args) => {
         const message = args.map(arg => 
@@ -88,9 +78,7 @@ export class ModuleLoader {
       }
     };
 
-    // Create a context to run the module in
     const context = {
-      // Provide working fetch implementation
       fetch: fetch,
       fetchv2: fetchv2,
       console: customConsole,
@@ -111,10 +99,8 @@ export class ModuleLoader {
     };
 
     try {
-      // Run the module code in the isolated context
       vm.runInNewContext(cleanCode, context);
 
-      // Extract the module object from context
       const module = {};
       for (const key in context) {
         if (typeof context[key] === 'function' && !['fetch', 'fetchv2', 'console', 'JSON', 'Map', 'Set', 'Array', 'String', 'Number', 'Promise', 'Math', 'encodeURIComponent', 'decodeURIComponent'].includes(key)) {
@@ -122,8 +108,6 @@ export class ModuleLoader {
         }
       }
 
-      // Don't cache - support hot reloading
-      // this.cache.set(resolved, module);
       return module;
     } catch (error) {
       throw new Error(`Failed to load module ${resolved}: ${error.message}`);

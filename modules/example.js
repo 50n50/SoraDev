@@ -1,14 +1,3 @@
-/**
- * Example Module - Conforming to Sora Module Specification
- * 
- * Required functions:
- * - searchResults(keyword): string -> JSON array of {title, image, href}
- * - extractDetails(url): string -> JSON object {description, aliases, airdate}
- * - extractEpisodes(url): string -> JSON array of {href, number}
- * - extractStreamUrl(url): string -> JSON object or direct URL
- */
-
-// Mock data for demonstration
 const mockContent = {
   'demon-slayer': {
     title: 'Demon Slayer',
@@ -48,13 +37,7 @@ const mockContent = {
   }
 };
 
-/**
- * searchResults(keyword) - Search for content
- * @param {string} keyword - User search query
- * @returns {string} - JSON stringified array of search results
- */
 export async function searchResults(keyword) {
-  // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 200));
   
   const query = keyword.toLowerCase();
@@ -72,13 +55,7 @@ export async function searchResults(keyword) {
   return JSON.stringify(results);
 }
 
-/**
- * extractDetails(url) - Get details about a specific item
- * @param {string} url - The href/URL of the item
- * @returns {string} - JSON stringified object with details
- */
 export async function extractDetails(url) {
-  // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 150));
   
   const content = mockContent[url];
@@ -98,13 +75,7 @@ export async function extractDetails(url) {
   });
 }
 
-/**
- * extractEpisodes(url) - Get episodes for content
- * @param {string} url - The href/URL of the item
- * @returns {string} - JSON stringified array of episodes
- */
 export async function extractEpisodes(url) {
-  // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 200));
   
   const content = mockContent[url];
@@ -121,16 +92,9 @@ export async function extractEpisodes(url) {
   );
 }
 
-/**
- * extractStreamUrl(url) - Get streaming URL for an episode
- * @param {string} url - The episode URL
- * @returns {string|object} - Direct URL string or JSON object with streams/streamUrl
- */
 export async function extractStreamUrl(url) {
-  // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 150));
   
-  // Return multi-server format (recommended)
   const streams = [
     {
       title: 'Server 1 (HLS)',

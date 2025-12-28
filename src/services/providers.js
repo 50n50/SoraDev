@@ -1,7 +1,3 @@
-/**
- * ProviderRegistry - manages loaded modules and executes their functions
- * Module spec functions: searchResults, extractDetails, extractEpisodes, extractStreamUrl
- */
 export class ProviderRegistry {
   constructor() {
     this.providers = new Map();

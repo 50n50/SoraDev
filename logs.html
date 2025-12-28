@@ -18,11 +18,59 @@
       overflow: hidden;
     }
     
+    /* Window Controls */
+    .window-controls {
+      position: fixed;
+      top: 0;
+      right: 0;
+      display: flex;
+      z-index: 9999;
+      -webkit-app-region: no-drag;
+    }
+
+    .titlebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 32px;
+      background: #0c0c0c;
+      -webkit-app-region: drag;
+      z-index: 9998;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    .window-btn {
+      width: 46px;
+      height: 32px;
+      background: transparent;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-app-region: no-drag;
+    }
+
+    .window-btn:hover {
+      background: #1a1a1a;
+      color: #fff;
+    }
+
+    .window-btn.close:hover {
+      background: #c74050;
+      color: #fff;
+    }
+    
     #logs {
       width: 100%;
       height: 100%;
       display: flex;
       flex-direction: column;
+      padding-top: 32px;
     }
     
     .logs-header {
@@ -89,6 +137,12 @@
   </style>
 </head>
 <body>
+  <div class="titlebar"></div>
+  <div class="window-controls">
+    <button class="window-btn" id="minimizeBtn" title="Minimize">−</button>
+    <button class="window-btn" id="maximizeBtn" title="Maximize">□</button>
+    <button class="window-btn close" id="closeBtn" title="Close">×</button>
+  </div>
   <div id="logs">
     <div class="logs-header">
       <span>System Logs</span>
@@ -99,6 +153,23 @@
 
   <script>
     const logsContent = document.getElementById('logsContent');
+
+    // Window controls
+    const minimizeBtn = document.getElementById('minimizeBtn');
+    const maximizeBtn = document.getElementById('maximizeBtn');
+    const closeBtn = document.getElementById('closeBtn');
+
+    if (minimizeBtn) {
+      minimizeBtn.addEventListener('click', () => window.api.minimizeWindow());
+    }
+
+    if (maximizeBtn) {
+      maximizeBtn.addEventListener('click', () => window.api.maximizeWindow());
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => window.api.closeWindow());
+    }
 
     window.api.onLog((message) => {
       const entry = document.createElement('div');

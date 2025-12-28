@@ -1,14 +1,9 @@
-/**
- * Frontend app controller for Sora Module Developer
- */
-
 let state = {
   provider: null,
   currentHref: null,
   searchDebounce: null
 };
 
-// DOM elements
 const moduleInfo = document.getElementById('moduleInfo');
 const searchInput = document.getElementById('searchInput');
 const searchWrapper = document.querySelector('.search-wrapper');
@@ -33,7 +28,6 @@ const detailError = document.getElementById('detailError');
 const streamModal = document.getElementById('streamModal');
 const streamModalBody = document.getElementById('streamModalBody');
 
-// Window control buttons
 const minimizeBtn = document.getElementById('minimizeBtn');
 const maximizeBtn = document.getElementById('maximizeBtn');
 const closeBtn = document.getElementById('closeBtn');
@@ -50,7 +44,6 @@ if (closeBtn) {
   closeBtn.addEventListener('click', () => window.api.closeWindow());
 }
 
-// Load module button handler
 if (loadBtn) {
   loadBtn.addEventListener('click', async () => {
     try {
@@ -86,25 +79,20 @@ if (loadBtn) {
   });
 }
 
-// Back button handler
 if (backBtn) {
   backBtn.addEventListener('click', () => {
-    // Hide detail view
     detailView.classList.remove('active');
     detailView.style.display = 'none';
     
-    // Show search section
     searchWrapper.style.display = 'block';
     results.style.display = 'flex';
     
-    // If no results, show empty state
     if (results.children.length === 0) {
       emptyState.style.display = 'flex';
     }
   });
 }
 
-// Clear search on focus
 if (searchInput) {
   searchInput.addEventListener('focus', () => {
     searchInput.value = '';
@@ -112,7 +100,6 @@ if (searchInput) {
   });
 }
 
-// Perform search
 async function performSearch() {
   if (!state.provider) {
     searchError.textContent = 'Load a module first';
@@ -165,16 +152,13 @@ async function performSearch() {
   }
 }
 
-// Open detail view
 async function openDetail(item) {
   state.currentHref = item.href;
 
-  // Hide search section
   searchWrapper.style.display = 'none';
   emptyState.style.display = 'none';
   results.style.display = 'none';
   
-  // Show detail view
   detailView.classList.add('active');
   detailView.style.display = 'block';
   
@@ -182,7 +166,6 @@ async function openDetail(item) {
   streamSection.classList.remove('active');
   detailError.classList.remove('active');
 
-  // Scroll to top
   document.querySelector('.container').scrollTop = 0;
 
   posterImg.src = item.image || '';
@@ -211,7 +194,6 @@ async function openDetail(item) {
   }
 }
 
-// Load episodes
 async function loadEpisodes() {
   episodesLoading.classList.add('active');
   episodesGrid.innerHTML = '';
@@ -242,7 +224,6 @@ async function loadEpisodes() {
   }
 }
 
-// Play episode
 async function playEpisode(ep) {
   try {
     streamModalBody.textContent = 'Loading stream...';
@@ -255,11 +236,9 @@ async function playEpisode(ep) {
       return;
     }
 
-    // Format the stream response for display
     let html = '';
     
     if (typeof stream === 'string') {
-      // Direct URL response
       html = `<strong>Stream URL:</strong><br><code>${stream}</code>`;
     } else if (stream.type === 'direct') {
       html = `<strong>Direct Stream:</strong><br><code>${stream.url}</code>`;
@@ -280,7 +259,6 @@ async function playEpisode(ep) {
         html += `<br><br><strong>Subtitle:</strong><br><code>${stream.subtitle || stream.subtitles}</code>`;
       }
     } else {
-      // Raw JSON response
       html = '<strong>Raw Response:</strong><br><code>' + JSON.stringify(stream, null, 2) + '</code>';
     }
 
@@ -290,7 +268,6 @@ async function playEpisode(ep) {
   }
 }
 
-// Search input with debounce
 searchInput.addEventListener('input', () => {
   clearTimeout(state.searchDebounce);
   state.searchDebounce = setTimeout(() => {
@@ -298,7 +275,6 @@ searchInput.addEventListener('input', () => {
   }, 300);
 });
 
-// Initialize
 (async () => {
   const modules = await window.api.getModules();
   if (modules.length === 0) {
