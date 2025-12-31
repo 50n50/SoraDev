@@ -13,7 +13,7 @@ A Windows development port of the **Sora iOS/macOS streaming application**, buil
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/SoraDev.git
+   git clone https://github.com/50n50/SoraDev.git
    cd SoraDev
    ```
 
