@@ -526,6 +526,192 @@
     #app {
       padding-top: 32px;
     }
+
+    /* Manga Reader Modal */
+    .reader-modal {
+      display: none;
+      position: fixed;
+      top: 32px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #050505;
+      z-index: 2000;
+      flex-direction: column;
+    }
+
+    .reader-modal.active {
+      display: flex;
+    }
+
+    .reader-header {
+      height: 60px;
+      background: rgba(12, 12, 12, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #1a1a1a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 10;
+      position: sticky;
+      top: 0;
+      user-select: none;
+    }
+
+    .reader-title-section {
+      display: flex;
+      flex-direction: column;
+      max-width: 60%;
+    }
+
+    .reader-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .reader-subtitle {
+      font-size: 11px;
+      color: #888;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .reader-page-indicator {
+      font-size: 13px;
+      color: #ffb3b3;
+      font-weight: 500;
+      background: rgba(199, 64, 80, 0.15);
+      border: 1px solid rgba(199, 64, 80, 0.3);
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    .reader-close-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #ccc;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .reader-close-btn:hover {
+      background: #c74050;
+      color: #fff;
+      border-color: #c74050;
+    }
+
+    .reader-body {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 10px 80px 10px;
+      scroll-behavior: smooth;
+    }
+
+    .reader-loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      margin: auto;
+      color: #888;
+      font-size: 14px;
+    }
+
+    .reader-loading.active {
+      display: flex;
+    }
+
+    .reader-loading .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(199, 64, 80, 0.1);
+      border-radius: 50%;
+      border-top-color: #c74050;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .reader-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .reader-content img {
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+      border-radius: 4px;
+      background: #111;
+      border: 1px solid #1a1a1a;
+      transition: opacity 0.3s;
+    }
+
+    /* Floating control styles */
+    .reader-floating-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(26, 26, 26, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid #2a2a2a;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 100;
+    }
+
+    .reader-floating-btn:hover {
+      border-color: #c74050;
+      background: #c74050;
+      transform: translateY(-2px);
+    }
+
+    /* Novel Reader Content Styles */
+    #novelReaderContent {
+      max-width: 700px;
+      margin: 0 auto;
+      color: #e0e0e0;
+      font-size: 16px;
+      line-height: 1.8;
+      font-family: 'Inter', sans-serif;
+      padding: 0 15px;
+    }
+
+    #novelReaderContent p {
+      margin-bottom: 1.5em;
+    }
   </style>
 </head>
 <body>
@@ -574,9 +760,12 @@
         </div>
 
         <div id="episodesSection" style="display:none;">
-          <div class="section-title">Episodes</div>
+          <div class="section-title" id="sectionTitle">Episodes</div>
+          <div class="manga-controls" id="mangaControls" style="display: none; margin-bottom: 15px;">
+            <select id="langSelect" class="load-btn" style="background: #1a1a1a; padding: 6px 12px; font-size: 13px; border-radius: 8px; outline: none; border-color: #2a2a2a; color: #fff; cursor: pointer;"></select>
+          </div>
           <div class="loading" id="episodesLoading">
-            <span>Loading episodes...</span>
+            <span id="loadingText">Loading episodes...</span>
           </div>
           <div class="episodes-grid" id="episodesGrid"></div>
         </div>
@@ -597,6 +786,62 @@
         <button class="modal-btn" onclick="document.getElementById('streamModal').classList.remove('active')">Close</button>
       </div>
     </div>
+  </div>
+
+  <!-- Scanlation Group Modal -->
+  <div class="stream-modal" id="groupModal">
+    <div class="stream-modal-content" style="max-width: 450px;">
+      <div class="stream-modal-header">Select Scanlation Group</div>
+      <div id="groupModalBody" style="display: flex; flex-direction: column; gap: 10px; max-height: 50vh; overflow-y: auto; margin-bottom: 20px;">
+        <!-- Group buttons will be inserted dynamically -->
+      </div>
+      <div class="stream-modal-footer">
+        <button class="modal-btn" onclick="document.getElementById('groupModal').classList.remove('active')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manga Reader Modal -->
+  <div class="reader-modal" id="readerModal">
+    <div class="reader-header">
+      <div class="reader-title-section">
+        <div class="reader-title" id="readerTitle">Manga Title</div>
+        <div class="reader-subtitle" id="readerSubtitle">Chapter X</div>
+      </div>
+      <div class="reader-page-indicator" id="readerPageIndicator">Page 1 / 1</div>
+      <button class="reader-close-btn" id="readerCloseBtn">×</button>
+    </div>
+    <div class="reader-body" id="readerBody">
+      <div class="reader-loading" id="readerLoading">
+        <div class="spinner"></div>
+        <span>Loading pages...</span>
+      </div>
+      <div class="reader-content" id="readerContent">
+        <!-- <img> elements go here -->
+      </div>
+    </div>
+    <button class="reader-floating-btn" id="readerScrollTopBtn" title="Scroll to Top" style="display: none;">↑</button>
+  </div>
+
+  <!-- Novel Reader Modal -->
+  <div class="reader-modal" id="novelReaderModal">
+    <div class="reader-header">
+      <div class="reader-title-section">
+        <div class="reader-title" id="novelReaderTitle">Novel Title</div>
+        <div class="reader-subtitle" id="novelReaderSubtitle">Chapter X</div>
+      </div>
+      <button class="reader-close-btn" id="novelReaderCloseBtn">×</button>
+    </div>
+    <div class="reader-body" id="novelReaderBody">
+      <div class="reader-loading" id="novelReaderLoading">
+        <div class="spinner"></div>
+        <span>Loading content...</span>
+      </div>
+      <div id="novelReaderContent">
+        <!-- Novel text HTML will be inserted here -->
+      </div>
+    </div>
+    <button class="reader-floating-btn" id="novelReaderScrollTopBtn" title="Scroll to Top" style="display: none;">↑</button>
   </div>
 
   <script src="src/app.js"></script>

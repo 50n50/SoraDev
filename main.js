@@ -164,14 +164,20 @@ ipcMain.handle('pick-file', async () => {
           jsContext.providers.providers.delete(moduleName);
           jsContext.providers.register(moduleName, reloadedModule);
           log(`[SUCCESS] Module hot-reloaded: ${moduleName}`);
+          
+          const providerType = jsContext.getModuleType(moduleName);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('module-reloaded', { module: moduleName, type: providerType });
+          }
         } catch (e) {
           log(`[ERROR] Hot reload failed: ${e.message}`);
         }
       }
     });
     
-    log(`[SUCCESS] Module loaded: ${moduleName}`);
-    return { success: true, module: moduleName, path: filePath };
+    const providerType = jsContext.getModuleType(moduleName);
+    log(`[SUCCESS] Module loaded: ${moduleName} (Type: ${providerType})`);
+    return { success: true, module: moduleName, path: filePath, type: providerType };
   } catch (e) {
     log(`[ERROR] Failed to load module: ${e.message}`);
     return { error: e.message };
@@ -225,6 +231,49 @@ ipcMain.handle('stream', async (event, provider, url) => {
     return result;
   } catch (e) { 
     log(`[ERROR] Stream error: ${e.message}`);
+    console.error(e);
+    return { error: e.message }; 
+  }
+});
+
+ipcMain.handle('get-module-type', (event, provider) => {
+  return jsContext.getModuleType(provider);
+});
+
+ipcMain.handle('chapters', async (event, provider, url) => {
+  try {
+    log(`[INFO] Chapters: ${url}`);
+    const result = await jsContext.chapters(provider, url);
+    log(`[SUCCESS] Chapters returned successfully`);
+    return result;
+  } catch (e) { 
+    log(`[ERROR] Chapters error: ${e.message}`);
+    console.error(e);
+    return { error: e.message }; 
+  }
+});
+
+ipcMain.handle('images', async (event, provider, url) => {
+  try {
+    log(`[INFO] Images: ${url}`);
+    const result = await jsContext.images(provider, url);
+    log(`[SUCCESS] Images returned ${result.length} items`);
+    return result;
+  } catch (e) { 
+    log(`[ERROR] Images error: ${e.message}`);
+    console.error(e);
+    return { error: e.message }; 
+  }
+});
+
+ipcMain.handle('text', async (event, provider, url) => {
+  try {
+    log(`[INFO] Text: ${url}`);
+    const result = await jsContext.text(provider, url);
+    log(`[SUCCESS] Text returned ${result.length} characters`);
+    return result;
+  } catch (e) { 
+    log(`[ERROR] Text error: ${e.message}`);
     console.error(e);
     return { error: e.message }; 
   }

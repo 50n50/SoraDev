@@ -30,7 +30,10 @@ export class JSContext {
       search: new Map(),
       details: new Map(),
       episodes: new Map(),
-      stream: new Map()
+      stream: new Map(),
+      chapters: new Map(),
+      images: new Map(),
+      text: new Map()
     };
   }
 
@@ -46,12 +49,20 @@ export class JSContext {
     return this.providers.list();
   }
 
+  getModuleType(provider) {
+    const prov = this.providers.providers.get(provider);
+    return prov ? (prov.type || 'anime') : 'anime';
+  }
+
   clearModules() {
     this.providers.providers.clear();
     this.cache.search.clear();
     this.cache.details.clear();
     this.cache.episodes.clear();
     this.cache.stream.clear();
+    this.cache.chapters.clear();
+    this.cache.images.clear();
+    this.cache.text.clear();
   }
 
   async search(provider, keyword) {
@@ -60,8 +71,8 @@ export class JSContext {
     
     const results = Array.isArray(parsed) ? parsed.map(item => ({
       title: item.title || item.name || '',
-      image: item.image || item.poster || '',
-      href: item.href || item.url || ''
+      image: item.image || item.poster || item.imageURL || '',
+      href: item.href || item.url || item.id || ''
     })) : [];
 
     return results;
@@ -77,8 +88,9 @@ export class JSContext {
 
     const details = {
       description: parsed.description || '',
-      aliases: parsed.aliases || '',
-      airdate: parsed.airdate || ''
+      aliases: parsed.aliases || (parsed.tags && Array.isArray(parsed.tags) ? parsed.tags.join(', ') : ''),
+      airdate: parsed.airdate || '',
+      tags: parsed.tags || []
     };
 
     return details;
@@ -133,6 +145,53 @@ export class JSContext {
     }
 
     return result;
+  }
+
+  async chapters(provider, url) {
+    const type = this.getModuleType(provider);
+    const raw = await this.providers.execute(provider, 'extractChapters', url);
+    const parsed = parseJSON(raw) || [];
+    
+    if (type === 'novel') {
+      const results = Array.isArray(parsed) ? parsed.map(item => ({
+        title: item.title || '',
+        href: item.href || item.url || '',
+        number: typeof item.number === 'number' ? item.number : parseInt(item.number, 10) || 0
+      })) : [];
+      return results;
+    }
+
+    const results = {};
+    for (const [lang, chapterList] of Object.entries(parsed)) {
+      if (Array.isArray(chapterList)) {
+        results[lang] = chapterList.map(item => {
+          if (Array.isArray(item) && item.length >= 2) {
+            const chNum = item[0];
+            const chArr = Array.isArray(item[1]) ? item[1] : [];
+            const normalizedChArr = chArr.map(ch => ({
+              id: ch.id || ch.url || '',
+              title: ch.title || `Chapter ${chNum}`,
+              chapter: typeof ch.chapter === 'number' ? ch.chapter : parseFloat(ch.chapter) || parseFloat(chNum) || 0,
+              scanlation_group: ch.scanlation_group || ch.group || ''
+            }));
+            return [chNum, normalizedChArr];
+          }
+          return null;
+        }).filter(Boolean);
+      }
+    }
+    return results;
+  }
+
+  async images(provider, url) {
+    const raw = await this.providers.execute(provider, 'extractImages', url);
+    const parsed = parseJSON(raw) || [];
+    return Array.isArray(parsed) ? parsed : [];
+  }
+
+  async text(provider, url) {
+    const raw = await this.providers.execute(provider, 'extractText', url);
+    return typeof raw === 'string' ? raw : String(raw || '');
   }
 
   clearCache() {

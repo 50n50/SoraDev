@@ -63,151 +63,112 @@ The built application will be in the `dist/` folder.
 
 ## How It Works
 
-### 1. **Search**
-- Enter a query in the search box
-- Selected module's `searchResults(keyword)` function executes
-- Results displayed as an image grid
+The runtime automatically detects the module type based on the functions exported:
+1. **Anime/Video Modules**: Triggered if the module implements `extractEpisodes` or `extractStreamUrl`.
+2. **Manga Modules**: Triggered if the module implements `extractChapters` and `extractImages`.
+3. **Novel Modules**: Triggered if the module implements `extractChapters` and `extractText`.
 
-### 2. **Detail**
-- Click on a search result
-- Module's `extractDetails(url)` fetches title, description, airdate
-- Displayed in detail view
-
-### 3. **Episodes**
-- Click "View Episodes" button
-- Module's `extractEpisodes(url)` returns episode list
-- Episodes displayed as numbered cards
-
-### 4. **Stream**
-- Click an episode
-- Module's `extractStreamUrl(url)` fetches streaming URL(s)
-- URL shown and ready to play
+---
 
 ## Creating Modules
 
-Place `.js` files in the `modules/` directory. Each module must export four async functions:
+Place your `.js` files in the `modules/` directory. Depending on the module type (Anime, Manga, or Novel), you must export the following async functions:
 
-### Function Signatures
+### 1. Anime / Video Modules
+
+Expected exports: `searchResults`, `extractDetails`, `extractEpisodes`, `extractStreamUrl`.
 
 ```javascript
 /**
- * Search for content by keyword
- * @param {string} keyword - User search query
- * @returns {Promise<string>} - JSON stringified array: [{title, image, href}, ...]
+ * Search content
+ * @returns {Promise<string>} - JSON: [{title, image, href}, ...]
  */
-export async function searchResults(keyword) {
-  // Fetch and return search results
-  return JSON.stringify([
-    { title: "Result 1", image: "url", href: "identifier" }
-  ]);
-}
+export async function searchResults(keyword) {}
 
 /**
- * Get details about an item
- * @param {string} url - The href from search results
- * @returns {Promise<string>} - JSON stringified object: {description, aliases, airdate}
+ * Extract item details
+ * @returns {Promise<string>} - JSON: {description, aliases, airdate}
  */
-export async function extractDetails(url) {
-  // Fetch and return details
-  return JSON.stringify({
-    description: "Long description...",
-    aliases: "Other info",
-    airdate: "2024"
-  });
-}
+export async function extractDetails(url) {}
 
 /**
- * Get episodes for a show
- * @param {string} url - The href from search results
- * @returns {Promise<string>} - JSON stringified array: [{href, number}, ...]
+ * Extract episodes
+ * @returns {Promise<string>} - JSON: [{href, number}, ...]
  */
-export async function extractEpisodes(url) {
-  // Fetch and return episodes
-  return JSON.stringify([
-    { href: "episode-1-url", number: 1 },
-    { href: "episode-2-url", number: 2 }
-  ]);
-}
+export async function extractEpisodes(url) {}
 
 /**
- * Get stream URL(s) for an episode
- * @param {string} url - The episode href from extractEpisodes
- * @returns {Promise<string>} - JSON stringified object or direct URL
- * 
- * Return formats:
- * - Direct URL: "https://example.com/stream.m3u8"
- * - Single stream: {streamUrl: "...", subtitle?: "..."}
- * - Multi-server: {streams: [{title, streamUrl, headers}], subtitle?: "..."}
+ * Get stream URL
+ * @returns {Promise<string|object>} - Direct URL string, or:
+ *   - Single stream: {streamUrl, subtitle?}
+ *   - Multi-server: {streams: [{title, streamUrl, headers}], subtitle?}
  */
-export async function extractStreamUrl(url) {
-  // Fetch and return stream
-  return JSON.stringify({
-    streams: [
-      { title: "Server 1", streamUrl: "https://...", headers: {} }
-    ]
-  });
-}
+export async function extractStreamUrl(url) {}
 ```
 
-## Module Response Formats
+### 2. Manga Modules
 
-### searchResults() Output
-```json
-[
-  {
-    "title": "Show Title",
-    "image": "https://...",
-    "href": "unique-identifier"
-  }
-]
+Expected exports: `searchResults`, `extractDetails`, `extractChapters`, `extractImages`.
+
+```javascript
+/**
+ * Search content (accepts optional page parameter)
+ * @returns {Promise<array>} - [{id, title, imageURL}, ...] (can return array directly or stringified JSON)
+ */
+export async function searchResults(keyword, page = 0) {}
+
+/**
+ * Extract details & genres/tags
+ * @returns {Promise<object>} - {description, tags: ["Action", ...]}
+ */
+export async function extractDetails(id) {}
+
+/**
+ * Extract chapters grouped by language code
+ * @returns {Promise<object>} - Format:
+ * {
+ *   "en": [
+ *     ["1", [{ id: "ch-1-id", title: "RYOMEN SUKUNA", chapter: 1, scanlation_group: "MangaPlus" }]]
+ *   ]
+ * }
+ */
+export async function extractChapters(url) {}
+
+/**
+ * Extract pages (image stack URLs)
+ * @returns {Promise<array>} - Array of image URL strings: ["https://...", "https://...", ...]
+ */
+export async function extractImages(chapterId) {}
 ```
 
-### extractDetails() Output
-```json
-{
-  "description": "Description text",
-  "aliases": "Alternative info",
-  "airdate": "2024-01-01"
-}
-```
+### 3. Novel Modules
 
-### extractEpisodes() Output
-```json
-[
-  {
-    "href": "episode-url",
-    "number": 1
-  }
-]
-```
+Expected exports: `searchResults`, `extractDetails`, `extractChapters`, `extractText`.
 
-### extractStreamUrl() Output (Multi-server - Recommended)
-```json
-{
-  "streams": [
-    {
-      "title": "Server Name",
-      "streamUrl": "https://stream.url",
-      "headers": {
-        "User-Agent": "Mozilla/5.0"
-      }
-    }
-  ],
-  "subtitle": "https://subtitles.url"
-}
-```
+```javascript
+/**
+ * Search novels
+ * @returns {Promise<string>} - JSON: [{title, href, image}, ...]
+ */
+export async function searchResults(keyword) {}
 
-Or single stream with subtitle:
-```json
-{
-  "streamUrl": "https://stream.url",
-  "subtitle": "https://subtitles.url"
-}
-```
+/**
+ * Extract novel details
+ * @returns {Promise<string>} - JSON: [{description, aliases, airdate}]
+ */
+export async function extractDetails(url) {}
 
-Or direct string URL:
-```
-"https://stream.url"
+/**
+ * Extract novel chapters in a flat array
+ * @returns {Promise<string>} - JSON: [{title, href, number}, ...]
+ */
+export async function extractChapters(url) {}
+
+/**
+ * Extract raw chapter text (HTML format)
+ * @returns {Promise<string>} - Raw HTML string to be rendered (e.g. "<p>Text...</p>")
+ */
+export async function extractText(url) {}
 ```
 
 ## Project Structure
