@@ -1,28 +1,43 @@
 {
   "name": "sora-dev-windows",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Windows development port of Sora iOS/macOS with proper module support",
   "type": "module",
   "main": "main.js",
   "scripts": {
     "dev": "electron . --enable-logging",
     "start": "electron .",
-    "build": "electron-builder --win --x64",
+    "build": "electron-builder",
     "pack": "electron-packager . SoraModuleDev --platform=win32 --arch=x64 --out=dist --overwrite"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/50n50/SoraDev.git"
   },
   "build": {
     "appId": "com.sora.moduledev",
     "productName": "Sora Module Developer",
-    "electronDist": "node_modules/electron/dist",
+    "icon": "icon.png",
     "win": {
       "target": [
-        {
-          "target": "dir",
-          "arch": [
-            "x64"
-          ]
-        }
+        "nsis",
+        "zip"
       ]
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ]
+    },
+    "publish": {
+      "provider": "github"
     },
     "files": [
       "**/*",

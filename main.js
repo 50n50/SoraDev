@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { spawn } from 'child_process';
 import { JSContext } from './src/services/jsContext.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -295,4 +296,52 @@ ipcMain.on('maximize-window', () => {
 
 ipcMain.on('close-window', () => {
   if (mainWindow) mainWindow.close();
+});
+
+ipcMain.on('open-logs', () => {
+  if (logsWindow && !logsWindow.isDestroyed()) {
+    logsWindow.focus();
+  } else {
+    createLogsWindow();
+  }
+});
+
+ipcMain.handle('play-with-mpv', (event, url, headers) => {
+  try {
+    log(`[INFO] Launching MPV for: ${url}`);
+    const args = [url];
+    if (headers && typeof headers === 'object') {
+      const headerList = [];
+      for (const [key, value] of Object.entries(headers)) {
+        const lowerKey = key.toLowerCase();
+        if (lowerKey === 'user-agent') {
+          args.push(`--user-agent=${value}`);
+        } else if (lowerKey === 'referer' || lowerKey === 'referrer') {
+          args.push(`--referrer=${value}`);
+        } else {
+          headerList.push(`${key}: ${value}`);
+        }
+      }
+      if (headerList.length > 0) {
+        args.push(`--http-header-fields=${headerList.join('\r\n')}`);
+      }
+    }
+    const mpvProcess = spawn('mpv', args);
+    mpvProcess.stdout.on('data', (data) => {
+      log(`[MPV] ${data.toString().trim()}`);
+    });
+    mpvProcess.stderr.on('data', (data) => {
+      log(`[MPV ERROR] ${data.toString().trim()}`);
+    });
+    mpvProcess.on('close', (code) => {
+      log(`[INFO] MPV process exited with code ${code}`);
+    });
+    mpvProcess.on('error', (err) => {
+      log(`[ERROR] Failed to start MPV: ${err.message}. Make sure MPV is installed and added to your system PATH.`);
+    });
+    return { success: true };
+  } catch (e) {
+    log(`[ERROR] MPV spawn error: ${e.message}`);
+    return { error: e.message };
+  }
 });

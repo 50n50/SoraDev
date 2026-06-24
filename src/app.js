@@ -9,7 +9,7 @@ let state = {
 
 const moduleInfo = document.getElementById('moduleInfo');
 const searchInput = document.getElementById('searchInput');
-const searchWrapper = document.querySelector('.search-wrapper');
+const searchSubmitBtn = document.getElementById('searchSubmitBtn');
 const results = document.getElementById('results');
 const searchError = document.getElementById('searchError');
 const loadBtn = document.getElementById('loadBtn');
@@ -57,6 +57,19 @@ const novelReaderLoading = document.getElementById('novelReaderLoading');
 const novelReaderContent = document.getElementById('novelReaderContent');
 const novelReaderScrollTopBtn = document.getElementById('novelReaderScrollTopBtn');
 
+const tabContentBtn = document.getElementById('tabContentBtn');
+const tabJsonBtn = document.getElementById('tabJsonBtn');
+const tabContentArea = document.getElementById('tabContentArea');
+const tabJsonArea = document.getElementById('tabJsonArea');
+const copyStreamBtn = document.getElementById('copyStreamBtn');
+const copyJsonBtn = document.getElementById('copyJsonBtn');
+const copyModalStreamBtn = document.getElementById('copyModalStreamBtn');
+const openLogsBtn = document.getElementById('openLogsBtn');
+const workspaceBtn = document.getElementById('workspaceBtn');
+const workspaceView = document.getElementById('workspaceView');
+const logsView = document.getElementById('logsView');
+const clearInlineLogsBtn = document.getElementById('clearInlineLogsBtn');
+
 const minimizeBtn = document.getElementById('minimizeBtn');
 const maximizeBtn = document.getElementById('maximizeBtn');
 const closeBtn = document.getElementById('closeBtn');
@@ -64,13 +77,128 @@ const closeBtn = document.getElementById('closeBtn');
 if (minimizeBtn) {
   minimizeBtn.addEventListener('click', () => window.api.minimizeWindow());
 }
-
 if (maximizeBtn) {
   maximizeBtn.addEventListener('click', () => window.api.maximizeWindow());
 }
-
 if (closeBtn) {
   closeBtn.addEventListener('click', () => window.api.closeWindow());
+}
+
+function setStatus(text, statusClass) {
+  const statusEl = document.getElementById('moduleStatus');
+  if (statusEl) {
+    statusEl.textContent = text;
+    statusEl.className = 'module-card-value ' + (statusClass || '');
+  }
+}
+
+function resetTabs() {
+  if (tabContentBtn && tabJsonBtn && tabContentArea && tabJsonArea) {
+    tabContentBtn.classList.add('active');
+    tabJsonBtn.classList.remove('active');
+    tabContentArea.classList.add('active');
+    tabContentArea.style.display = 'block';
+    tabJsonArea.classList.remove('active');
+    tabJsonArea.style.display = 'none';
+  }
+}
+
+if (tabContentBtn && tabJsonBtn && tabContentArea && tabJsonArea) {
+  tabContentBtn.addEventListener('click', () => {
+    tabContentBtn.classList.add('active');
+    tabJsonBtn.classList.remove('active');
+    tabContentArea.classList.add('active');
+    tabContentArea.style.display = 'block';
+    tabJsonArea.classList.remove('active');
+    tabJsonArea.style.display = 'none';
+  });
+
+  tabJsonBtn.addEventListener('click', () => {
+    tabJsonBtn.classList.add('active');
+    tabContentBtn.classList.remove('active');
+    tabJsonArea.classList.add('active');
+    tabJsonArea.style.display = 'block';
+    tabContentArea.classList.remove('active');
+    tabContentArea.style.display = 'none';
+  });
+}
+
+if (copyStreamBtn) {
+  copyStreamBtn.addEventListener('click', () => {
+    const text = streamInfo.getAttribute('data-copy-val') || streamInfo.innerText;
+    if (text) {
+      navigator.clipboard.writeText(text);
+      const originalHTML = copyStreamBtn.innerHTML;
+      copyStreamBtn.textContent = 'Copied!';
+      setTimeout(() => {
+        copyStreamBtn.innerHTML = originalHTML;
+      }, 1000);
+    }
+  });
+}
+
+if (copyJsonBtn) {
+  copyJsonBtn.addEventListener('click', () => {
+    const rawJsonView = document.getElementById('rawJsonView');
+    const text = rawJsonView ? rawJsonView.textContent : '';
+    if (text) {
+      navigator.clipboard.writeText(text);
+      const originalHTML = copyJsonBtn.innerHTML;
+      copyJsonBtn.textContent = 'Copied!';
+      setTimeout(() => {
+        copyJsonBtn.innerHTML = originalHTML;
+      }, 1000);
+    }
+  });
+}
+
+if (copyModalStreamBtn) {
+  copyModalStreamBtn.addEventListener('click', () => {
+    const text = streamModalBody.innerText;
+    if (text) {
+      navigator.clipboard.writeText(text);
+      const originalText = copyModalStreamBtn.textContent;
+      copyModalStreamBtn.textContent = 'Copied!';
+      setTimeout(() => {
+        copyModalStreamBtn.textContent = originalText;
+      }, 1000);
+    }
+  });
+}
+
+window.playStreamInMpv = (url, headersJsonStr) => {
+  let headers = null;
+  if (headersJsonStr) {
+    try {
+      headers = JSON.parse(decodeURIComponent(headersJsonStr));
+    } catch (e) {}
+  }
+  window.api.playWithMpv(url, headers);
+};
+
+if (workspaceBtn && openLogsBtn && workspaceView && logsView) {
+  workspaceBtn.addEventListener('click', () => {
+    workspaceBtn.classList.add('active');
+    openLogsBtn.classList.remove('active');
+    workspaceView.style.display = 'flex';
+    logsView.style.display = 'none';
+  });
+
+  openLogsBtn.addEventListener('click', () => {
+    openLogsBtn.classList.add('active');
+    workspaceBtn.classList.remove('active');
+    workspaceView.style.display = 'none';
+    logsView.style.display = 'flex';
+  });
+}
+
+if (clearInlineLogsBtn) {
+  clearInlineLogsBtn.addEventListener('click', () => {
+    const inlineLogsContent = document.getElementById('inlineLogsContent');
+    if (inlineLogsContent) {
+      inlineLogsContent.innerHTML = '';
+    }
+  });
 }
 
 if (loadBtn) {
@@ -78,6 +206,7 @@ if (loadBtn) {
     try {
       loadBtn.disabled = true;
       loadBtn.textContent = 'Loading...';
+      setStatus('Loading Module...', 'active');
       
       const result = await window.api.pickFile();
       
@@ -87,24 +216,30 @@ if (loadBtn) {
         moduleInfo.classList.remove('active');
         moduleInfo.textContent = 'No module';
         state.provider = null;
+        setStatus('Load Failed', 'error');
       } else if (result.success) {
         state.provider = result.module;
         state.providerType = result.type || 'anime';
         moduleInfo.classList.add('active');
-        moduleInfo.textContent = `${result.module} (${state.providerType === 'manga' ? 'Manga' : (state.providerType === 'novel' ? 'Novel' : 'Anime')})`;
+        moduleInfo.textContent = `${result.module}`;
+        
         emptyState.style.display = 'flex';
         detailView.classList.remove('active');
         results.innerHTML = '';
         searchInput.value = '';
         searchError.classList.remove('active');
+        setStatus('Idle', '');
+      } else {
+        setStatus('Idle', '');
       }
     } catch (error) {
       console.error('Load error:', error);
       searchError.textContent = 'Error: ' + error.message;
       searchError.classList.add('active');
+      setStatus('Load Error', 'error');
     } finally {
       loadBtn.disabled = false;
-      loadBtn.textContent = 'Load Module';
+      loadBtn.textContent = 'Load JS Module';
     }
   });
 }
@@ -112,18 +247,10 @@ if (loadBtn) {
 if (backBtn) {
   backBtn.addEventListener('click', () => {
     detailView.classList.remove('active');
-    detailView.style.display = 'none';
-    
-    searchWrapper.style.display = 'block';
-    results.style.display = 'flex';
-    
-    if (results.children.length === 0) {
-      emptyState.style.display = 'flex';
-    }
+    emptyState.style.display = 'flex';
+    document.querySelectorAll('.item-row').forEach(r => r.classList.remove('selected'));
   });
 }
-
-
 
 async function performSearch() {
   if (!state.provider) {
@@ -140,7 +267,7 @@ async function performSearch() {
 
   searchError.classList.remove('active');
   results.innerHTML = '';
-  results.style.display = 'flex';
+  setStatus('Searching...', 'active');
 
   try {
     const searchResults = await window.api.search(state.provider, keyword);
@@ -148,11 +275,13 @@ async function performSearch() {
     if (searchResults.error) {
       searchError.textContent = searchResults.error;
       searchError.classList.add('active');
+      setStatus('Search Error', 'error');
       return;
     }
 
     if (searchResults.length === 0) {
-      results.innerHTML = '<div style="text-align:center;color:#666;padding:20px">No results found</div>';
+      results.innerHTML = '<div style="text-align:center;color:#71717a;padding:20px;font-size:13px">No results found</div>';
+      setStatus('Idle', '');
       return;
     }
 
@@ -168,41 +297,69 @@ async function performSearch() {
           <div class="item-meta">${item.href}</div>
         </div>
       `;
-      row.addEventListener('click', () => openDetail(item));
+      row.addEventListener('click', () => {
+        document.querySelectorAll('.item-row').forEach(r => r.classList.remove('selected'));
+        row.classList.add('selected');
+        openDetail(item);
+      });
       results.appendChild(row);
     });
+    setStatus('Idle', '');
   } catch (error) {
     searchError.textContent = error.message || 'Search failed';
     searchError.classList.add('active');
+    setStatus('Search Failed', 'error');
   }
 }
+
+if (searchSubmitBtn) {
+  searchSubmitBtn.addEventListener('click', performSearch);
+}
+
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    performSearch();
+  }
+});
 
 async function openDetail(item) {
   state.currentHref = item.href;
   state.currentMangaTitle = item.title;
 
-  searchWrapper.style.display = 'none';
   emptyState.style.display = 'none';
-  results.style.display = 'none';
-  
   detailView.classList.add('active');
-  detailView.style.display = 'block';
   
   episodesSection.style.display = 'none';
   mangaControls.style.display = 'none';
   streamSection.classList.remove('active');
   detailError.classList.remove('active');
+  resetTabs();
 
-  document.querySelector('.container').scrollTop = 0;
+  const paneContainer = document.querySelector('.inspector-pane .container');
+  if (paneContainer) {
+    paneContainer.scrollTop = 0;
+  }
 
   posterImg.src = item.image || '';
   detailTitle.textContent = item.title;
   detailMeta.textContent = '';
-  detailDesc.textContent = 'Loading...';
+  detailDesc.textContent = 'Loading item details...';
+
+  const moduleTypeBadge = document.getElementById('moduleTypeBadge');
+  if (moduleTypeBadge) {
+    moduleTypeBadge.className = `badge ${state.providerType}`;
+    moduleTypeBadge.textContent = state.providerType === 'manga' ? 'Manga' : (state.providerType === 'novel' ? 'Novel' : 'Anime');
+  }
+
+  setStatus('Fetching Details...', 'active');
 
   if (state.provider && typeof window.api.getModuleType === 'function') {
     try {
       state.providerType = await window.api.getModuleType(state.provider) || 'anime';
+      if (moduleTypeBadge) {
+        moduleTypeBadge.className = `badge ${state.providerType}`;
+        moduleTypeBadge.textContent = state.providerType === 'manga' ? 'Manga' : (state.providerType === 'novel' ? 'Novel' : 'Anime');
+      }
     } catch (e) {
       console.warn('Failed to fetch provider type, defaulting to current:', e);
     }
@@ -215,10 +372,16 @@ async function openDetail(item) {
       detailDesc.textContent = 'Error: ' + details.error;
       detailError.textContent = details.error;
       detailError.classList.add('active');
+      setStatus('Detail Fetch Error', 'error');
       return;
     }
 
-    detailDesc.textContent = details.description || 'No description';
+    const rawJsonView = document.getElementById('rawJsonView');
+    if (rawJsonView) {
+      rawJsonView.textContent = JSON.stringify(details, null, 2);
+    }
+
+    detailDesc.textContent = details.description || 'No description available';
     
     if (state.providerType === 'manga' || state.providerType === 'novel') {
       detailMeta.textContent = details.aliases || 'No tags';
@@ -241,12 +404,14 @@ async function openDetail(item) {
     detailDesc.textContent = 'Failed to load details';
     detailError.textContent = error.message;
     detailError.classList.add('active');
+    setStatus('Detail Load Failed', 'error');
   }
 }
 
 async function loadEpisodes() {
   episodesLoading.classList.add('active');
   episodesGrid.innerHTML = '';
+  setStatus('Loading Episodes...', 'active');
 
   try {
     const episodes = await window.api.episodes(state.provider, state.currentHref);
@@ -255,6 +420,7 @@ async function loadEpisodes() {
       episodesLoading.classList.remove('active');
       detailError.textContent = episodes.error;
       detailError.classList.add('active');
+      setStatus('Episodes Error', 'error');
       return;
     }
 
@@ -262,59 +428,92 @@ async function loadEpisodes() {
       const btn = document.createElement('button');
       btn.className = 'episode-btn';
       btn.textContent = ep.number;
+      btn.title = `Episode ${ep.number}`;
       btn.addEventListener('click', () => playEpisode(ep));
       episodesGrid.appendChild(btn);
     });
 
     episodesLoading.classList.remove('active');
+    setStatus('Idle', '');
   } catch (error) {
     episodesLoading.classList.remove('active');
     detailError.textContent = error.message;
     detailError.classList.add('active');
+    setStatus('Episodes Load Failed', 'error');
   }
 }
 
 async function playEpisode(ep) {
   try {
+    setStatus('Fetching Stream URL...', 'active');
+    streamSection.classList.add('active');
+    streamInfo.innerHTML = 'Loading stream URL details...';
+    
     streamModalBody.textContent = 'Loading stream...';
     streamModal.classList.add('active');
 
     const stream = await window.api.stream(state.provider, ep.href);
 
     if (stream.error) {
-      streamModalBody.textContent = 'Error: ' + stream.error;
+      const errMsg = 'Error: ' + stream.error;
+      streamInfo.innerHTML = errMsg;
+      streamModalBody.textContent = errMsg;
+      setStatus('Stream Fetch Failed', 'error');
       return;
     }
 
-    let html = '';
+    const noteHtml = '<div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">Note: Playing streams in MPV requires MPV to be installed and in your system PATH.</div>';
+    let html = noteHtml;
+    let plainText = '';
     
     if (typeof stream === 'string') {
-      html = `<strong>Stream URL:</strong><br><code>${stream}</code>`;
-    } else if (stream.type === 'direct') {
-      html = `<strong>Direct Stream:</strong><br><code>${stream.url}</code>`;
-      if (stream.subtitle) html += `<br><br><strong>Subtitle:</strong><br><code>${stream.subtitle}</code>`;
+      html += `<strong>Stream URL:</strong><br><code>${stream}</code><br><button class="copy-btn" onclick="window.playStreamInMpv('${stream.replace(/'/g, "\\'")}', '')" style="display: inline-flex; align-items: center; gap: 4px; margin-top: 8px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>Play in MPV</button>`;
+      plainText = stream;
+    } else if (stream.type === 'direct' || stream.streamUrl || stream.url) {
+      const url = stream.url || stream.streamUrl;
+      const headers = stream.headers || null;
+      const escHeaders = headers ? encodeURIComponent(JSON.stringify(headers)) : '';
+      html += `<strong>Direct Stream:</strong><br><code>${url}</code><br><button class="copy-btn" onclick="window.playStreamInMpv('${url.replace(/'/g, "\\'")}', '${escHeaders}')" style="display: inline-flex; align-items: center; gap: 4px; margin-top: 8px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>Play in MPV</button>`;
+      plainText = url;
+      if (stream.subtitle) {
+        html += `<br><br><strong>Subtitle:</strong><br><code>${stream.subtitle}</code>`;
+        plainText += `\nSubtitle: ${stream.subtitle}`;
+      }
     } else if (stream.type === 'servers' || stream.streams) {
       const streams = stream.streams || stream;
       if (Array.isArray(streams) && streams.length > 0) {
-        html = '<strong>Available Streams:</strong>';
+        html += '<strong>Available Streams:</strong>';
         streams.forEach((s, i) => {
           const title = typeof s === 'object' ? s.title : s;
-          const url = typeof s === 'object' ? s.streamUrl : s;
-          html += `<br><br>[Server ${i + 1}] ${title}<br><code>${url}</code>`;
+          const url = typeof s === 'object' ? (s.streamUrl || s.url) : s;
+          const headers = typeof s === 'object' ? s.headers : null;
+          const escHeaders = headers ? encodeURIComponent(JSON.stringify(headers)) : '';
+          html += `<br><br>[Server ${i + 1}] ${title}<br><code>${url}</code><br><button class="copy-btn" onclick="window.playStreamInMpv('${url.replace(/'/g, "\\'")}', '${escHeaders}')" style="display: inline-flex; align-items: center; gap: 4px; margin-top: 6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>Play in MPV</button>`;
+          plainText += `[Server ${i + 1}] ${title}: ${url}\n`;
         });
       } else {
-        html = '<strong>Raw Response:</strong><br><code>' + JSON.stringify(stream, null, 2) + '</code>';
+        html += '<strong>Raw Response:</strong><br><code>' + JSON.stringify(stream, null, 2) + '</code>';
+        plainText = JSON.stringify(stream, null, 2);
       }
       if (stream.subtitle || stream.subtitles) {
         html += `<br><br><strong>Subtitle:</strong><br><code>${stream.subtitle || stream.subtitles}</code>`;
+        plainText += `\nSubtitle: ${stream.subtitle || stream.subtitles}`;
       }
     } else {
-      html = '<strong>Raw Response:</strong><br><code>' + JSON.stringify(stream, null, 2) + '</code>';
+      html += '<strong>Raw Response:</strong><br><code>' + JSON.stringify(stream, null, 2) + '</code>';
+      plainText = JSON.stringify(stream, null, 2);
     }
 
+    streamInfo.innerHTML = html;
     streamModalBody.innerHTML = html;
+    streamInfo.setAttribute('data-copy-val', plainText);
+    
+    setStatus('Idle', '');
   } catch (error) {
-    streamModalBody.textContent = 'Error: ' + error.message;
+    const errMsg = 'Error: ' + error.message;
+    streamInfo.textContent = errMsg;
+    streamModalBody.textContent = errMsg;
+    setStatus('Stream Load Error', 'error');
   }
 }
 
@@ -322,9 +521,10 @@ async function loadChapters() {
   episodesLoading.classList.add('active');
   episodesGrid.innerHTML = '';
   mangaControls.style.display = 'none';
+  setStatus('Loading Chapters...', 'active');
 
   episodesGrid.style.display = 'grid';
-  episodesGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(60px, 1fr))';
+  episodesGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(64px, 1fr))';
   episodesGrid.style.gap = '8px';
 
   try {
@@ -334,13 +534,15 @@ async function loadChapters() {
       episodesLoading.classList.remove('active');
       detailError.textContent = chaptersData.error;
       detailError.classList.add('active');
+      setStatus('Chapters Error', 'error');
       return;
     }
 
     if (state.providerType === 'novel') {
       if (!Array.isArray(chaptersData) || chaptersData.length === 0) {
         episodesLoading.classList.remove('active');
-        episodesGrid.innerHTML = '<div style="text-align:center;color:#666;padding:20px;grid-column:1/-1">No chapters found</div>';
+        episodesGrid.innerHTML = '<div style="text-align:center;color:#71717a;padding:20px;grid-column:1/-1;font-size:13px">No chapters found</div>';
+        setStatus('Idle', '');
         return;
       }
 
@@ -360,6 +562,7 @@ async function loadChapters() {
       });
 
       episodesLoading.classList.remove('active');
+      setStatus('Idle', '');
       return;
     }
 
@@ -368,7 +571,8 @@ async function loadChapters() {
     const languages = Object.keys(chaptersData);
     if (languages.length === 0) {
       episodesLoading.classList.remove('active');
-      episodesGrid.innerHTML = '<div style="text-align:center;color:#666;padding:20px;grid-column:1/-1">No chapters found</div>';
+      episodesGrid.innerHTML = '<div style="text-align:center;color:#71717a;padding:20px;grid-column:1/-1;font-size:13px">No chapters found</div>';
+      setStatus('Idle', '');
       return;
     }
 
@@ -391,10 +595,12 @@ async function loadChapters() {
 
     renderChapters(defaultLang);
     episodesLoading.classList.remove('active');
+    setStatus('Idle', '');
   } catch (error) {
     episodesLoading.classList.remove('active');
     detailError.textContent = error.message;
     detailError.classList.add('active');
+    setStatus('Chapters Load Failed', 'error');
   }
 }
 
@@ -403,7 +609,7 @@ function renderChapters(lang) {
   const chapters = state.mangaChaptersData[lang] || [];
 
   if (chapters.length === 0) {
-    episodesGrid.innerHTML = '<div style="text-align:center;color:#666;padding:20px;grid-column:1/-1">No chapters in this language</div>';
+    episodesGrid.innerHTML = '<div style="text-align:center;color:#71717a;padding:20px;grid-column:1/-1;font-size:13px">No chapters in this language</div>';
     return;
   }
 
@@ -411,6 +617,7 @@ function renderChapters(lang) {
     const btn = document.createElement('button');
     btn.className = 'episode-btn';
     btn.textContent = `Ch. ${chNum}`;
+    btn.title = `Chapter ${chNum}`;
     btn.addEventListener('click', () => openChapter(chNum, releases));
     episodesGrid.appendChild(btn);
   });
@@ -438,7 +645,7 @@ function openChapter(chapterNum, releases) {
       btn.style.marginBottom = '4px';
       btn.innerHTML = `
         <strong>${rel.scanlation_group || 'Unknown Group'}</strong>
-        ${rel.title ? `<div style="font-size:11px;color:#888;margin-top:2px;">${rel.title}</div>` : ''}
+        ${rel.title ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${rel.title}</div>` : ''}
       `;
       btn.addEventListener('click', () => {
         groupModal.classList.remove('active');
@@ -460,6 +667,7 @@ async function loadMangaReader(chapterId, chapterTitle) {
 
   readerModal.classList.add('active');
   readerLoading.classList.add('active');
+  setStatus('Fetching Manga Images...', 'active');
 
   try {
     const images = await window.api.images(state.provider, chapterId);
@@ -467,12 +675,14 @@ async function loadMangaReader(chapterId, chapterTitle) {
     readerLoading.classList.remove('active');
 
     if (images.error) {
-      readerContent.innerHTML = `<div style="color:#ff6b6b;padding:40px;text-align:center;">Error: ${images.error}</div>`;
+      readerContent.innerHTML = `<div style="color:#f87171;padding:40px;text-align:center;font-size:13px">Error: ${images.error}</div>`;
+      setStatus('Reader Error', 'error');
       return;
     }
 
     if (!images || images.length === 0) {
-      readerContent.innerHTML = `<div style="color:#888;padding:40px;text-align:center;">No pages found for this chapter</div>`;
+      readerContent.innerHTML = `<div style="color:var(--text-muted);padding:40px;text-align:center;font-size:13px">No pages found for this chapter</div>`;
+      setStatus('Idle', '');
       return;
     }
 
@@ -490,7 +700,7 @@ async function loadMangaReader(chapterId, chapterTitle) {
         img.style.opacity = '1';
       });
       img.addEventListener('error', () => {
-        img.style.opacity = '0.5';
+        img.style.opacity = '0.4';
         img.alt = `Failed to load Page ${idx + 1}`;
       });
 
@@ -516,7 +726,7 @@ async function loadMangaReader(chapterId, chapterTitle) {
       for (let i = 0; i < imgElements.length; i++) {
         const img = imgElements[i];
         const imgHeight = img.clientHeight || 1000;
-        accumulatedHeight += imgHeight + 10;
+        accumulatedHeight += imgHeight + 12;
 
         if (bodyMiddle < accumulatedHeight) {
           currentActivePage = i + 1;
@@ -530,10 +740,11 @@ async function loadMangaReader(chapterId, chapterTitle) {
     readerBody.addEventListener('scroll', handleScroll);
     readerModal._scrollListener = handleScroll;
     readerModal._scrollTarget = readerBody;
-
+    setStatus('Idle', '');
   } catch (error) {
     readerLoading.classList.remove('active');
-    readerContent.innerHTML = `<div style="color:#ff6b6b;padding:40px;text-align:center;">Failed to load chapter pages: ${error.message}</div>`;
+    readerContent.innerHTML = `<div style="color:#f87171;padding:40px;text-align:center;font-size:13px">Failed to load chapter pages: ${error.message}</div>`;
+    setStatus('Reader Load Failed', 'error');
   }
 }
 
@@ -557,6 +768,7 @@ async function openNovelChapter(ch) {
 
   novelReaderModal.classList.add('active');
   novelReaderLoading.classList.add('active');
+  setStatus('Fetching Novel Text...', 'active');
 
   try {
     const textHtml = await window.api.text(state.provider, ch.href);
@@ -564,7 +776,8 @@ async function openNovelChapter(ch) {
     novelReaderLoading.classList.remove('active');
 
     if (textHtml.error) {
-      novelReaderContent.innerHTML = `<div style="color:#ff6b6b;padding:40px;text-align:center;">Error: ${textHtml.error}</div>`;
+      novelReaderContent.innerHTML = `<div style="color:#f87171;padding:40px;text-align:center;font-size:13px">Error: ${textHtml.error}</div>`;
+      setStatus('Reader Error', 'error');
       return;
     }
 
@@ -581,10 +794,11 @@ async function openNovelChapter(ch) {
     novelReaderBody.addEventListener('scroll', handleScroll);
     novelReaderModal._scrollListener = handleScroll;
     novelReaderModal._scrollTarget = novelReaderBody;
-
+    setStatus('Idle', '');
   } catch (error) {
     novelReaderLoading.classList.remove('active');
-    novelReaderContent.innerHTML = `<div style="color:#ff6b6b;padding:40px;text-align:center;">Failed to load chapter text: ${error.message}</div>`;
+    novelReaderContent.innerHTML = `<div style="color:#f87171;padding:40px;text-align:center;font-size:13px">Failed to load chapter text: ${error.message}</div>`;
+    setStatus('Reader Load Failed', 'error');
   }
 }
 
@@ -632,21 +846,47 @@ if (window.api.onModuleReloaded) {
   window.api.onModuleReloaded((data) => {
     if (state.provider === data.module) {
       state.providerType = data.type;
-      moduleInfo.textContent = `${data.module} (${state.providerType === 'manga' ? 'Manga' : (state.providerType === 'novel' ? 'Novel' : 'Anime')})`;
+      moduleInfo.textContent = `${data.module}`;
+      
+      const moduleTypeBadge = document.getElementById('moduleTypeBadge');
+      if (moduleTypeBadge) {
+        moduleTypeBadge.className = `badge ${state.providerType}`;
+        moduleTypeBadge.textContent = state.providerType === 'manga' ? 'Manga' : (state.providerType === 'novel' ? 'Novel' : 'Anime');
+      }
     }
   });
 }
 
-searchInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    performSearch();
+window.api.onLog((message) => {
+  const inlineLogsContent = document.getElementById('inlineLogsContent');
+  if (inlineLogsContent) {
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    if (message.includes('[SUCCESS]') || message.includes('loaded')) {
+      entry.classList.add('success');
+    } else if (message.includes('[MODULE ERROR]')) {
+      entry.classList.add('module-error');
+    } else if (message.includes('[MODULE WARN]')) {
+      entry.classList.add('module-warn');
+    } else if (message.includes('[MODULE')) {
+      entry.classList.add('module');
+    } else if (message.includes('[WARNING]') || message.includes('[WARN]')) {
+      entry.classList.add('warning');
+    } else if (message.includes('[ERROR]') || message.includes('error') || message.includes('Error')) {
+      entry.classList.add('error');
+    } else if (message.includes('[INFO]')) {
+      entry.classList.add('info');
+    }
+    entry.textContent = message;
+    inlineLogsContent.appendChild(entry);
+    inlineLogsContent.scrollTop = inlineLogsContent.scrollHeight;
   }
 });
 
 (async () => {
+  setStatus('Idle', '');
   const modules = await window.api.getModules();
   if (modules.length === 0) {
     moduleInfo.textContent = 'No modules loaded';
   }
 })();
-

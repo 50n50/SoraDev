@@ -15,5 +15,7 @@ contextBridge.exposeInMainWorld('api', {
   onModuleReloaded: (callback) => ipcRenderer.on('module-reloaded', (event, data) => callback(data)),
   minimizeWindow: () => ipcRenderer.send('minimize-window'),
   maximizeWindow: () => ipcRenderer.send('maximize-window'),
-  closeWindow: () => ipcRenderer.send('close-window')
+  closeWindow: () => ipcRenderer.send('close-window'),
+  openLogs: () => ipcRenderer.send('open-logs'),
+  playWithMpv: (url, headers) => ipcRenderer.invoke('play-with-mpv', url, headers)
 });

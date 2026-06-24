@@ -7,6 +7,118 @@ import fetch from 'node-fetch';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function stripCommentsAndStrings(code) {
+  let result = '';
+  let i = 0;
+  let inLineComment = false;
+  let inBlockComment = false;
+  let inString = false;
+  let stringChar = '';
+
+  while (i < code.length) {
+    const char = code[i];
+    const nextChar = code[i + 1];
+
+    if (inLineComment) {
+      if (char === '\n' || char === '\r') {
+        inLineComment = false;
+        result += char;
+      }
+    } else if (inBlockComment) {
+      if (char === '*' && nextChar === '/') {
+        inBlockComment = false;
+        i++; // skip '/'
+      }
+    } else if (inString) {
+      if (char === '\\') {
+        i++;
+      } else if (char === stringChar) {
+        inString = false;
+      }
+    } else {
+      if (char === '/' && nextChar === '/') {
+        inLineComment = true;
+        i++;
+      } else if (char === '/' && nextChar === '*') {
+        inBlockComment = true;
+        i++;
+      } else if (char === "'" || char === '"' || char === '`') {
+        inString = true;
+        stringChar = char;
+      } else {
+        result += char;
+      }
+    }
+    i++;
+  }
+  return result;
+}
+
+function analyzeCodeForIosIncompatibilities(code) {
+  const clean = stripCommentsAndStrings(code);
+  const warnings = [];
+
+  const rules = [
+    {
+      pattern: /\b(document|window|DOMParser|XMLHttpRequest|localStorage|LocalStorage|location|DOM)\b/g,
+      message: "No DOM/Window: absolutely no document, window, DOMParser, XMLHttpRequest, LocalStorage, or location APIs."
+    },
+    {
+      pattern: /\b(require|import)\b/g,
+      message: "No Module Imports: No require(), import, or external script loading. Code must be self-contained."
+    },
+    {
+      pattern: /\b(setTimeout|setInterval)\b/g,
+      message: "Timing: setTimeout/setInterval is not supported by default in bare iOS JavaScriptCore/QuickJS."
+    },
+    {
+      pattern: /\b(process|Buffer)\b/g,
+      message: "No Node Globals: Node.js specific globals are not supported in bare JavaScriptCore/QuickJS."
+    },
+    {
+      pattern: /\b(fs|path|crypto|http|https|net|child_process|worker_threads|stream)\b/g,
+      message: "No Node Modules: Node.js modules are not supported in bare JavaScriptCore/QuickJS."
+    },
+    {
+      pattern: /\b(URL|URLSearchParams)\b/g,
+      message: "JSCore Limits: URL / URLSearchParams may have limited support depending on iOS version."
+    },
+    {
+      pattern: /\brequest\s*\.\s*response\b/g,
+      message: "No Node http/Request Response: request.response is not supported in bare JavaScriptCore/QuickJS."
+    },
+    {
+      pattern: /\btimeout\b/g,
+      message: "Timing: timeout is not supported in bare JavaScriptCore/QuickJS."
+    }
+  ];
+
+  const uniqueMessages = new Set();
+  const matchedTokens = new Set();
+
+  for (const rule of rules) {
+    let match;
+    rule.pattern.lastIndex = 0;
+    while ((match = rule.pattern.exec(clean)) !== null) {
+      const token = match[0].replace(/\s+/g, '');
+      if (!matchedTokens.has(token)) {
+        matchedTokens.add(token);
+        if (token === 'console' && matchedTokens.has('console.log')) {
+          continue;
+        }
+        uniqueMessages.add(`'${token}' -> ${rule.message}`);
+      }
+    }
+  }
+
+  const finalWarnings = Array.from(uniqueMessages);
+  if (matchedTokens.has('console.log')) {
+    return finalWarnings.filter(w => !w.startsWith("'console' ->"));
+  }
+
+  return finalWarnings;
+}
+
 export class ModuleLoader {
   constructor(baseDir, logCallback) {
     this.baseDir = baseDir || process.cwd();
@@ -26,11 +138,20 @@ export class ModuleLoader {
     if (!fs.existsSync(resolved)) {
       throw new Error(`Module not found: ${resolved}`);
     }
-    
+
     const stats = fs.statSync(resolved);
     const moduleCode = fs.readFileSync(resolved, 'utf-8');
     console.log(`[ModuleLoader] Loading ${filePath} (modified: ${stats.mtime.toISOString()}, size: ${moduleCode.length} bytes)`);
-    
+
+    const iosWarnings = analyzeCodeForIosIncompatibilities(moduleCode);
+    if (iosWarnings.length > 0) {
+      this.logCallback(`[WARNING] Module "${path.basename(filePath)}" might be functional in this app, but it is using functions/APIs that are NOT supported on iOS, therefore it won't work on iOS.`);
+      this.logCallback(`Detected unsupported features:`);
+      iosWarnings.forEach(warn => {
+        this.logCallback(`  - ${warn}`);
+      });
+    }
+
     const cleanCode = moduleCode
       .replace(/export\s*\{[^}]*\}/g, '')
       .replace(/export\s+default\s+/g, '')
@@ -53,25 +174,25 @@ export class ModuleLoader {
 
     const customConsole = {
       log: (...args) => {
-        const message = args.map(arg => 
+        const message = args.map(arg =>
           typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
         ).join(' ');
         this.logCallback(`[MODULE] ${message}`);
       },
       error: (...args) => {
-        const message = args.map(arg => 
+        const message = args.map(arg =>
           typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
         ).join(' ');
         this.logCallback(`[MODULE ERROR] ${message}`);
       },
       warn: (...args) => {
-        const message = args.map(arg => 
+        const message = args.map(arg =>
           typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
         ).join(' ');
         this.logCallback(`[MODULE WARN] ${message}`);
       },
       info: (...args) => {
-        const message = args.map(arg => 
+        const message = args.map(arg =>
           typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
         ).join(' ');
         this.logCallback(`[MODULE INFO] ${message}`);

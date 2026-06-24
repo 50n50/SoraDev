@@ -1,13 +1,30 @@
 # Sora Windows Development Port
 
-A Windows development port of the **Sora iOS/macOS streaming application**, built with Electron and vanilla JavaScript. Features a full UI that mirrors the native app's architecture, allowing you to develop and test Sora modules on Windows before deploying to iOS/macOS.
+<p align="left">
+  <img src="icon.png" alt="Sora Dev Icon" width="96" height="96" style="border-radius: 8px;" />
+</p>
+
+A Windows development port of the native **Sora iOS/macOS streaming application**, built with Electron and vanilla JavaScript. Features a full UI that mirrors the native app's architecture, allowing you to develop, scan, and test Sora modules on Windows before deploying to iOS/macOS.
+
+---
+
+## Features
+
+- **Hot Module Reloading**: Real-time hot-reloading when modifying your Javascript provider files.
+- **Native-Like Architecture**: Implements standard `JSContext` and provider registry structures.
+- **Live Playback with MPV**: Play extracted video streams directly from the app using MPV.
+- **iOS Compatibility Guard**: Scans module code for unsupported iOS JSCore/QuickJS APIs on load/reload.
+- **GitHub Actions Integration**: Automated release pipeline for packaging Windows, macOS, and Linux binaries.
+
+---
 
 ## Setup & Installation
 
 ### Prerequisites
-- **Node.js** (v16 or higher) - [Download here](https://nodejs.org/)
+- **Node.js** (v18 or higher) - [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js)
 - **Windows 10/11**
+- **MPV Player** (Required for live stream playback) - [Download here](https://mpv.io/). Install and ensure the directory containing `mpv.exe` is added to your system **PATH**.
 
 ### Installation Steps
 
@@ -31,28 +48,50 @@ A Windows development port of the **Sora iOS/macOS streaming application**, buil
 
 ### Building for Production
 
-To create a standalone executable:
-
+To create a standalone executable for your local platform:
 ```bash
-# Build for Windows (creates .exe in dist/ folder)
 npm run build
 ```
 
-Or use the alternative packager:
-
+Or package the Windows build manually:
 ```bash
-# Alternative build method
 npm run pack
 ```
+The built application will be outputted to the `dist/` folder.
 
-The built application will be in the `dist/` folder.
+---
 
-### Available Scripts
+## Available Scripts
 
-- `npm start` - Run in development mode
-- `npm run dev` - Run with logging enabled
-- `npm run build` - Build production executable
-- `npm run pack` - Alternative packaging method
+- `npm start` - Run developer workspace.
+- `npm run dev` - Run with console logging enabled.
+- `npm run build` - Compile production executable.
+- `npm run pack` - Package Windows build manually.
+
+---
+
+## Live Stream Playback (MPV)
+
+The developer workspace supports playing extracted stream URLs directly in your system's video player:
+1. Install [MPV Player](https://mpv.io/) on your PC.
+2. Add the directory containing `mpv.exe` to your system's environment variable **PATH**.
+3. Open a module, click an episode, and click **Play in MPV**.
+4. Custom HTTP headers (such as Referer or User-Agent) returned by your module will automatically be injected into the MPV launch arguments.
+
+---
+
+## iOS Compatibility Guard
+
+Bare mobile JS runtimes (JavaScriptCore/QuickJS) have strict constraints compared to desktop browser engines:
+- **No DOM/Window**: Absolutely no `document`, `window`, `DOMParser`, `XMLHttpRequest`, `localStorage`, or `location`.
+- **No Module Imports**: No `require()` or `import`. All code must be self-contained in a single file.
+- **Timing Restrictions**: Bare JSCore has no `setTimeout` or `setInterval` by default.
+- **Node Globals**: No `Buffer` or `process`.
+- **Node Modules**: No `fs`, `path`, `crypto`, `http`, etc.
+
+The Sora Dev Suite automatically performs a static analysis scan on your JS code on load/reload. If any unsupported features are detected, a warning log is generated to notify you of potential incompatibilities before you deploy to iOS.
+
+---
 
 ## Architecture
 
@@ -75,7 +114,6 @@ The runtime automatically detects the module type based on the functions exporte
 Place your `.js` files in the `modules/` directory. Depending on the module type (Anime, Manga, or Novel), you must export the following async functions:
 
 ### 1. Anime / Video Modules
-
 Expected exports: `searchResults`, `extractDetails`, `extractEpisodes`, `extractStreamUrl`.
 
 ```javascript
@@ -107,7 +145,6 @@ export async function extractStreamUrl(url) {}
 ```
 
 ### 2. Manga Modules
-
 Expected exports: `searchResults`, `extractDetails`, `extractChapters`, `extractImages`.
 
 ```javascript
@@ -142,7 +179,6 @@ export async function extractImages(chapterId) {}
 ```
 
 ### 3. Novel Modules
-
 Expected exports: `searchResults`, `extractDetails`, `extractChapters`, `extractText`.
 
 ```javascript
@@ -170,6 +206,8 @@ export async function extractChapters(url) {}
  */
 export async function extractText(url) {}
 ```
+
+---
 
 ## Project Structure
 
@@ -214,6 +252,22 @@ See `modules/example.js` for a complete working example with mock data.
 - Other functions receive `url` (string) - the href value
 - Episodes' `number` must be a number, not string
 - Return valid JSON or your module will error
+
+---
+
+## GitHub Actions Releases
+
+This repository includes a multi-platform release workflow using GitHub Actions:
+- **Trigger**: Push a version tag matching `v*` (e.g. `v1.0.0`) to trigger the compilation.
+- **Platforms**: Packages Windows (`.exe`/`.zip`), macOS (`.dmg`/`.zip`), and Linux (`.AppImage`/`.tar.gz`).
+- **Release**: Automatically drafts a GitHub Release containing all target compiled binaries.
+
+```bash
+git tag v1.0.0
+git push origin main --tags
+```
+
+---
 
 ## License
 

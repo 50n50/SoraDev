@@ -6,6 +6,33 @@
   <title>Sora Module Developer</title>
   <link href="https://rsms.me/inter/inter.css" rel="stylesheet">
   <style>
+    :root {
+      --bg-base: #0c0d12;
+      --bg-sidebar: #0e1017;
+      --bg-surface: #151722;
+      --bg-surface-hover: #1c1f2e;
+      --bg-active: #222538;
+      --border-color: #222538;
+      --border-focus: #333954;
+      --text-primary: #f3f4f6;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --primary: #f6821f;
+      --primary-hover: #e27221;
+      --primary-muted: rgba(246, 130, 31, 0.1);
+      --badge-anime-bg: rgba(59, 130, 246, 0.1);
+      --badge-anime-text: #60a5fa;
+      --badge-anime-border: rgba(59, 130, 246, 0.2);
+      --badge-manga-bg: rgba(16, 185, 129, 0.1);
+      --badge-manga-text: #34d399;
+      --badge-manga-border: rgba(16, 185, 129, 0.2);
+      --badge-novel-bg: rgba(139, 92, 246, 0.1);
+      --badge-novel-text: #a78bfa;
+      --badge-novel-border: rgba(139, 92, 246, 0.2);
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -15,172 +42,363 @@
     html, body {
       width: 100%;
       height: 100%;
-      background-color: #0c0c0c;
-      color: #fff;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
       -webkit-font-smoothing: antialiased;
       overflow: hidden;
     }
 
-    body::before {
-      content: '';
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--border-focus);
+    }
+
+    .titlebar {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      bottom: 0;
-      background: radial-gradient(49.63% 57.02% at 50% -7.2%, rgba(199, 64, 80, 0.40) 0%, rgba(199, 64, 80, 0.30) 15%, rgba(199, 64, 80, 0.22) 30%, rgba(199, 64, 80, 0.15) 45%, rgba(199, 64, 80, 0.10) 60%, rgba(199, 64, 80, 0.05) 75%, rgba(0, 0, 0, 0) 100%);
-      pointer-events: none;
-      z-index: 0;
-      filter: blur(40px);
-    }
-
-    #app {
-      width: 100%;
-      height: 100%;
+      height: 36px;
+      background: var(--bg-base);
+      -webkit-app-region: drag;
+      z-index: 9998;
+      border-bottom: 1px solid var(--border-color);
       display: flex;
-      flex-direction: column;
-      position: relative;
-      z-index: 1;
+      align-items: center;
+      padding-left: 16px;
     }
 
-    .container {
-      flex: 1;
+    .titlebar-logo {
       display: flex;
-      flex-direction: column;
-      padding: 40px;
-      max-width: 900px;
-      margin: 0 auto;
-      width: 100%;
-      overflow-y: auto;
-    }
-
-    .section-title {
-      font-size: 16px;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
       font-weight: 600;
-      color: #fff;
-      margin: 25px 0 15px 0;
-      letter-spacing: -0.3px;
+      color: var(--text-secondary);
+      letter-spacing: -0.2px;
     }
 
-    .header-section {
-      text-align: center;
-      margin-bottom: 30px;
+    .titlebar-logo svg {
+      color: var(--primary);
     }
 
-    .title {
-      text-align: center;
-      font-size: 36px;
-      margin-bottom: 20px;
-      color: #fff;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-    }
-
-    .controls {
+    .window-controls {
+      position: fixed;
+      top: 0;
+      right: 0;
       display: flex;
-      gap: 12px;
-      margin-bottom: 30px;
-      flex-wrap: wrap;
+      z-index: 9999;
+      -webkit-app-region: no-drag;
+      height: 36px;
+    }
+
+    .window-btn {
+      width: 46px;
+      height: 36px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
       justify-content: center;
     }
 
-    .load-btn {
-      padding: 8px 16px;
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
+    .window-btn:hover {
+      background: var(--bg-active);
+      color: var(--text-primary);
+    }
+
+    .window-btn.close:hover {
+      background: #ef4444;
       color: #fff;
-      border-radius: 12px;
-      font-size: 14px;
+    }
+
+    #app {
+      padding-top: 36px;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 260px;
+      height: 100%;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .sidebar-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-section-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .load-btn {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--primary);
+      border: none;
+      color: #fff;
+      border-radius: 4px;
+      font-size: 12px;
       cursor: pointer;
-      transition: all 0.2s;
-      font-weight: 500;
+      transition: background 0.15s;
+      font-weight: 600;
       font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
 
     .load-btn:hover {
-      border-color: #c74050;
-      background: #242424;
-      color: #ffb3b3;
+      background: var(--primary-hover);
     }
 
-    .module-name {
-      padding: 8px 16px;
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      color: #888;
-      border-radius: 12px;
-      font-size: 14px;
-      min-width: 150px;
-      text-align: center;
+    .load-btn:disabled {
+      background: var(--bg-active);
+      color: var(--text-muted);
+      cursor: not-allowed;
     }
 
-    .module-name.active {
-      color: #4caf50;
-      border-color: #4caf50;
+    .module-card {
+      margin-top: 12px;
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 10px;
     }
 
-    .search-wrapper {
+    .module-card-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-bottom: 6px;
+    }
+
+    .module-card-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .module-card-label {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .module-card-value {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-primary);
+      word-break: break-all;
+    }
+
+    .module-card-value.active {
+      color: var(--primary);
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .nav-btn {
+      width: 100%;
+      padding: 8px 12px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-align: left;
+      border-left: 2px solid transparent;
+    }
+
+    .nav-btn:hover {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+    }
+
+    .nav-btn.active {
+      background: var(--bg-surface);
+      color: var(--primary);
+      border-left-color: var(--primary);
+    }
+
+    .workspace {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      overflow: hidden;
+      background: var(--bg-base);
+    }
+
+    .search-pane {
+      width: 360px;
+      height: 100%;
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      background: var(--bg-sidebar);
+    }
+
+    .pane-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 8px;
+    }
+
+    .search-input-wrapper {
       position: relative;
-      margin-bottom: 30px;
+      flex: 1;
+    }
+
+    .search-input-wrapper svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
     }
 
     .search-box {
       width: 100%;
-      padding: 10px 12px;
-      background-color: #1a1a1a;
-      color: #fff;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      font-size: 14px;
+      padding: 8px 10px 8px 30px;
+      background-color: var(--bg-surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 12px;
       outline: none;
-      transition: all 0.3s ease;
+      transition: all 0.15s;
       font-family: inherit;
-      caret-color: #c74050;
     }
 
     .search-box:focus {
-      border-color: #c74050;
-      background: #242424;
+      border-color: var(--primary);
     }
 
     .search-box::placeholder {
-      color: #777;
+      color: var(--text-muted);
+    }
+
+    .search-btn {
+      padding: 0 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+
+    .search-btn:hover {
+      background: var(--bg-active);
+      border-color: var(--border-focus);
+    }
+
+    .error {
+      display: none;
+      color: #f87171;
+      font-size: 11px;
+      margin-top: 8px;
+      padding: 6px 10px;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.15);
+      border-radius: 4px;
+      word-break: break-all;
+    }
+
+    .error.active {
+      display: block;
+    }
+
+    .results-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
     }
 
     .items-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      margin-bottom: 30px;
+      gap: 6px;
     }
 
     .item-row {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      transition: all 0.2s;
+      gap: 10px;
+      padding: 8px 10px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      transition: all 0.15s;
       cursor: pointer;
     }
 
     .item-row:hover {
-      border-color: #c74050;
-      background: #242424;
-      box-shadow: 0 4px 12px rgba(199, 64, 80, 0.15), inset 0 0 0 1px rgba(199, 64, 80, 0.3);
+      border-color: var(--border-focus);
+      background: var(--bg-surface-hover);
+    }
+
+    .item-row.selected {
+      border-color: var(--primary);
+      background: var(--bg-active);
     }
 
     .item-image {
       flex-shrink: 0;
-      width: 40px;
-      height: 60px;
-      border-radius: 6px;
+      width: 32px;
+      height: 46px;
+      border-radius: 3px;
       overflow: hidden;
-      background: #0c0c0c;
-      border: 1px solid #2a2a2a;
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -196,23 +414,78 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
+      min-width: 0;
     }
 
     .item-title {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 600;
-      color: #fff;
-      letter-spacing: -0.3px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .item-meta {
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: var(--font-mono);
+    }
+
+    .inspector-pane {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-base);
+      position: relative;
+    }
+
+    .container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 100%;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+
+    .empty-state svg {
+      margin-bottom: 12px;
+      color: var(--bg-active);
+    }
+
+    .empty-state h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .empty-state p {
       font-size: 12px;
-      color: #888;
+      max-width: 280px;
+      line-height: 1.5;
     }
 
     .detail-panel {
       display: none;
+      width: 100%;
     }
 
     .detail-panel.active {
@@ -220,42 +493,25 @@
     }
 
     .back-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      color: #888;
-      border-radius: 8px;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-weight: 500;
-      font-family: inherit;
-      margin-bottom: 20px;
+      display: none;
     }
 
-    .back-btn:hover {
-      border-color: #c74050;
-      background: #242424;
-      color: #ffb3b3;
-    }
-
-    .poster-section {
+    .detail-header {
       display: flex;
       gap: 20px;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
+      align-items: flex-start;
     }
 
     .poster-img {
-      width: 120px;
-      height: 180px;
-      border-radius: 12px;
+      width: 90px;
+      height: 130px;
+      border-radius: 4px;
       overflow: hidden;
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       flex-shrink: 0;
+      position: relative;
     }
 
     .poster-img img {
@@ -264,64 +520,206 @@
       object-fit: cover;
     }
 
-    .poster-info {
+    .poster-fallback {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      z-index: -1;
+    }
+
+    .detail-info {
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      gap: 12px;
+      gap: 6px;
     }
 
     .detail-title {
-      font-size: 24px;
+      font-size: 18px;
       font-weight: 700;
-      color: #fff;
-      letter-spacing: -0.5px;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+      line-height: 1.3;
+    }
+
+    .detail-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      border: 1px solid transparent;
+    }
+
+    .badge.anime {
+      background: var(--badge-anime-bg);
+      color: var(--badge-anime-text);
+      border-color: var(--badge-anime-border);
+    }
+    .badge.manga {
+      background: var(--badge-manga-bg);
+      color: var(--badge-manga-text);
+      border-color: var(--badge-manga-border);
+    }
+    .badge.novel {
+      background: var(--badge-novel-bg);
+      color: var(--badge-novel-text);
+      border-color: var(--badge-novel-border);
     }
 
     .detail-meta {
-      font-size: 14px;
-      color: #999;
+      font-size: 11px;
+      color: var(--text-secondary);
     }
 
     .detail-desc {
-      font-size: 13px;
-      color: #bbb;
+      font-size: 12px;
+      color: var(--text-secondary);
       line-height: 1.6;
+      max-width: 640px;
+      margin-top: 2px;
+    }
+
+    .inspector-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 16px;
+      gap: 16px;
+    }
+
+    .tab-btn {
+      padding: 8px 2px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .section-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .section-title-row h4 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .lang-select {
+      background: var(--bg-surface);
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 4px;
+      outline: none;
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .lang-select:focus {
+      border-color: var(--primary);
     }
 
     .episodes-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-      gap: 8px;
-      margin-bottom: 30px;
+      grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+      gap: 6px;
+      margin-bottom: 20px;
     }
 
     .episode-btn {
-      padding: 8px;
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      color: #999;
-      border-radius: 8px;
-      font-size: 12px;
+      padding: 8px 6px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      border-radius: 4px;
+      font-size: 11px;
       cursor: pointer;
-      transition: all 0.2s;
-      font-weight: 500;
+      transition: all 0.15s;
+      font-weight: 600;
       font-family: inherit;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .episode-btn:hover {
-      border-color: #c74050;
-      background: #242424;
-      color: #ffb3b3;
+      border-color: var(--border-focus);
+      background: var(--bg-surface-hover);
+      color: var(--text-primary);
+    }
+
+    .loading {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      font-size: 11px;
+      padding: 12px 0;
+    }
+
+    .loading.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.07);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     .stream-section {
       display: none;
-      padding: 16px;
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
       margin-top: 20px;
     }
 
@@ -329,70 +727,76 @@
       display: block;
     }
 
-    .stream-info {
-      font-size: 12px;
-      color: #ccc;
-      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-      line-height: 1.8;
-      word-break: break-all;
+    .console-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
     }
 
-    .stream-info strong {
-      color: #fff;
+    .console-header-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .copy-btn {
+      padding: 4px 8px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      border-radius: 4px;
+      font-size: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .copy-btn:hover {
+      background: var(--bg-active);
+      border-color: var(--border-focus);
+      color: var(--text-primary);
+    }
+
+    .console-box {
+      background: #07080b;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 12px;
+      overflow-x: auto;
+      max-height: 360px;
+      overflow-y: auto;
+    }
+
+    .console-box pre {
+      margin: 0;
+    }
+
+    .console-box code, .stream-info {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.5;
+      color: #38bdf8;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+
+    .console-box code strong {
+      color: var(--text-primary);
       display: block;
       margin-top: 10px;
-      margin-bottom: 8px;
+      margin-bottom: 2px;
     }
-
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: #888;
-    }
-
-    .empty-state p {
-      font-size: 14px;
-      margin-bottom: 8px;
-    }
-
-    .loading {
-      display: none;
-    }
-
-    .loading.active {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-      color: #888;
-    }
-
-    .container::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .container::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .container::-webkit-scrollbar-thumb {
-      background: #2a2a2a;
-      border-radius: 4px;
-    }
-
-    .container::-webkit-scrollbar-thumb:hover {
-      background: #3a3a3a;
-    }
-
-    .error {
-      display: none;
-      color: #ff6b6b;
-      font-size: 13px;
-      margin: 10px 0;
-    }
-
-    .error.active {
-      display: block;
+    .console-box code strong:first-child {
+      margin-top: 0;
     }
 
     .stream-modal {
@@ -402,10 +806,12 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.75);
       z-index: 1000;
       align-items: center;
       justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(4px);
     }
 
     .stream-modal.active {
@@ -413,129 +819,71 @@
     }
 
     .stream-modal-content {
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      padding: 30px;
-      max-width: 600px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      width: 100%;
+      max-width: 560px;
       max-height: 80vh;
-      overflow-y: auto;
-      color: #fff;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      color: var(--text-primary);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
     }
 
     .stream-modal-header {
-      font-size: 20px;
+      font-size: 14px;
       font-weight: 700;
-      margin-bottom: 20px;
-      color: #fff;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .stream-modal-body {
-      font-size: 12px;
-      font-family: 'Monaco', 'Menlo', monospace;
-      line-height: 1.8;
-      color: #bbb;
-      word-break: break-all;
-      max-height: 50vh;
+      flex: 1;
       overflow-y: auto;
-      background: #0c0c0c;
-      padding: 15px;
-      border-radius: 8px;
-      border: 1px solid #2a2a2a;
-    }
-
-    .stream-modal-body strong {
-      color: #fff;
-      display: block;
-      margin-top: 15px;
-      margin-bottom: 8px;
+      background: var(--bg-base);
+      padding: 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 12px;
     }
 
     .stream-modal-footer {
       display: flex;
-      gap: 12px;
-      margin-top: 20px;
+      gap: 10px;
+      justify-content: flex-end;
     }
 
     .modal-btn {
-      flex: 1;
-      padding: 10px;
-      border: 1px solid #2a2a2a;
-      background: #242424;
-      color: #fff;
-      border-radius: 8px;
+      padding: 6px 12px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      border-radius: 4px;
       cursor: pointer;
-      font-weight: 500;
-      transition: all 0.2s;
+      font-weight: 600;
+      font-size: 11px;
+      transition: all 0.15s;
       font-family: inherit;
     }
 
     .modal-btn:hover {
-      border-color: #c74050;
-      background: #2a2a2a;
-      color: #ffb3b3;
+      background: var(--bg-active);
+      border-color: var(--border-focus);
     }
 
-    .window-controls {
-      position: fixed;
-      top: 0;
-      right: 0;
-      display: flex;
-      z-index: 9999;
-      -webkit-app-region: no-drag;
-    }
-
-    .titlebar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 32px;
-      background: #0c0c0c;
-      -webkit-app-region: drag;
-      z-index: 9998;
-      border-bottom: 1px solid #1a1a1a;
-    }
-
-    .window-btn {
-      width: 46px;
-      height: 32px;
-      background: transparent;
-      border: none;
-      color: #888;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      -webkit-app-region: no-drag;
-    }
-
-    .window-btn:hover {
-      background: #1a1a1a;
-      color: #fff;
-    }
-
-    .window-btn.close:hover {
-      background: #c74050;
-      color: #fff;
-    }
-
-    #app {
-      padding-top: 32px;
-    }
-
-    /* Manga Reader Modal */
     .reader-modal {
       display: none;
       position: fixed;
-      top: 32px;
+      top: 36px;
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: #050505;
+      background-color: var(--bg-base);
       z-index: 2000;
       flex-direction: column;
     }
@@ -545,17 +893,14 @@
     }
 
     .reader-header {
-      height: 60px;
-      background: rgba(12, 12, 12, 0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid #1a1a1a;
+      height: 52px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 24px;
+      padding: 0 16px;
       z-index: 10;
-      position: sticky;
-      top: 0;
       user-select: none;
     }
 
@@ -566,51 +911,52 @@
     }
 
     .reader-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .reader-subtitle {
-      font-size: 11px;
-      color: #888;
+      font-size: 10px;
+      color: var(--text-muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      margin-top: 2px;
     }
 
     .reader-page-indicator {
-      font-size: 13px;
-      color: #ffb3b3;
-      font-weight: 500;
-      background: rgba(199, 64, 80, 0.15);
-      border: 1px solid rgba(199, 64, 80, 0.3);
-      padding: 4px 12px;
-      border-radius: 20px;
+      font-size: 11px;
+      color: var(--primary);
+      font-weight: 700;
+      background: var(--primary-muted);
+      border: 1px solid rgba(246, 130, 31, 0.2);
+      padding: 3px 10px;
+      border-radius: 4px;
     }
 
     .reader-close-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #ccc;
-      font-size: 20px;
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: 16px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s;
+      transition: all 0.15s;
     }
 
     .reader-close-btn:hover {
-      background: #c74050;
+      background: #ef4444;
       color: #fff;
-      border-color: #c74050;
+      border-color: #ef4444;
     }
 
     .reader-body {
@@ -619,7 +965,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px 10px 80px 10px;
+      padding: 16px 8px 60px 8px;
       scroll-behavior: smooth;
     }
 
@@ -628,10 +974,10 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 15px;
+      gap: 12px;
       margin: auto;
-      color: #888;
-      font-size: 14px;
+      color: var(--text-secondary);
+      font-size: 12px;
     }
 
     .reader-loading.active {
@@ -639,16 +985,9 @@
     }
 
     .reader-loading .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(199, 64, 80, 0.1);
-      border-radius: 50%;
-      border-top-color: #c74050;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+      width: 28px;
+      height: 28px;
+      border-width: 3px;
     }
 
     .reader-content {
@@ -657,7 +996,7 @@
       align-items: center;
       gap: 10px;
       width: 100%;
-      max-width: 800px;
+      max-width: 720px;
     }
 
     .reader-content img {
@@ -665,135 +1004,282 @@
       height: auto;
       object-fit: contain;
       border-radius: 4px;
-      background: #111;
-      border: 1px solid #1a1a1a;
-      transition: opacity 0.3s;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      transition: opacity 0.2s;
     }
 
-    /* Floating control styles */
     .reader-floating-btn {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
-      width: 48px;
-      height: 48px;
+      bottom: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
-      background: rgba(26, 26, 26, 0.85);
-      backdrop-filter: blur(8px);
-      border: 1px solid #2a2a2a;
-      color: #fff;
-      font-size: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-size: 14px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: all 0.15s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       z-index: 100;
     }
 
     .reader-floating-btn:hover {
-      border-color: #c74050;
-      background: #c74050;
+      border-color: var(--primary);
+      background: var(--primary);
+      color: #fff;
       transform: translateY(-2px);
     }
 
-    /* Novel Reader Content Styles */
     #novelReaderContent {
-      max-width: 700px;
+      max-width: 640px;
       margin: 0 auto;
-      color: #e0e0e0;
-      font-size: 16px;
+      color: var(--text-secondary);
+      font-size: 14px;
       line-height: 1.8;
-      font-family: 'Inter', sans-serif;
-      padding: 0 15px;
+      padding: 0 16px;
     }
 
     #novelReaderContent p {
-      margin-bottom: 1.5em;
+      margin-bottom: 1.4em;
     }
+
+    #novelReaderContent h1, #novelReaderContent h2, #novelReaderContent h3 {
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      margin-top: 20px;
+    }
+
+    .logs-pane {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: var(--bg-base);
+    }
+
+    .logs-pane .console-box {
+      margin: 16px;
+      flex: 1;
+      max-height: calc(100% - 70px);
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      background: #07080b;
+      padding: 16px;
+    }
+
+    .logs-pane .log-entry {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.5;
+      margin-bottom: 4px;
+      color: var(--text-secondary);
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+
+    .logs-pane .log-entry.info { color: #38bdf8; }
+    .logs-pane .log-entry.success { color: #34d399; }
+    .logs-pane .log-entry.error { color: #f87171; }
+    .logs-pane .log-entry.warning { color: #fbbf24; }
+    .logs-pane .log-entry.module { color: #c084fc; }
+    .logs-pane .log-entry.module-error { color: #ef4444; font-weight: 600; }
+    .logs-pane .log-entry.module-warn { color: #fb923c; }
   </style>
 </head>
 <body>
-  <div class="titlebar"></div>
+  <div class="titlebar">
+    <div class="titlebar-logo">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f6821f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      <span>Sora Dev Suite</span>
+    </div>
+  </div>
   <div class="window-controls">
     <button class="window-btn" id="minimizeBtn" title="Minimize">−</button>
     <button class="window-btn" id="maximizeBtn" title="Maximize">□</button>
     <button class="window-btn close" id="closeBtn" title="Close">×</button>
   </div>
+
   <div id="app">
-    <div class="container">
-      <div class="header-section">
-        <div class="title">Sora Module Developer</div>
-      </div>
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Module Controller</div>
+        <button class="load-btn" id="loadBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          Load JS Module
+        </button>
 
-      <div class="controls">
-        <button class="load-btn" id="loadBtn">Load Module</button>
-        <div class="module-name" id="moduleInfo">No module</div>
-      </div>
-
-      <div class="error" id="searchError"></div>
-
-      <div class="search-wrapper">
-        <input type="text" class="search-box" id="searchInput" placeholder="Search...">
-      </div>
-
-      <div class="items-list" id="results"></div>
-
-      <div id="emptyState" class="empty-state">
-        <p>Load a module to get started</p>
-      </div>
-
-      <div class="detail-panel" id="detailView">
-        <button id="backBtn" class="back-btn">← Back to Search</button>
-        <div class="error" id="detailError"></div>
-        
-        <div class="poster-section">
-          <div class="poster-img">
-            <img id="posterImg" src="" alt="">
+        <div class="module-card">
+          <div class="module-card-row">
+            <span class="module-card-label">Active Provider</span>
+            <span class="module-card-value" id="moduleInfo">No module loaded</span>
           </div>
-          <div class="poster-info">
-            <div class="detail-title" id="detailTitle"></div>
-            <div class="detail-meta" id="detailMeta"></div>
-            <div class="detail-desc" id="detailDesc"></div>
+          <div class="module-card-row">
+            <span class="module-card-label">Status</span>
+            <span class="module-card-value" id="moduleStatus">Idle</span>
           </div>
         </div>
-
-        <div id="episodesSection" style="display:none;">
-          <div class="section-title" id="sectionTitle">Episodes</div>
-          <div class="manga-controls" id="mangaControls" style="display: none; margin-bottom: 15px;">
-            <select id="langSelect" class="load-btn" style="background: #1a1a1a; padding: 6px 12px; font-size: 13px; border-radius: 8px; outline: none; border-color: #2a2a2a; color: #fff; cursor: pointer;"></select>
-          </div>
-          <div class="loading" id="episodesLoading">
-            <span id="loadingText">Loading episodes...</span>
-          </div>
-          <div class="episodes-grid" id="episodesGrid"></div>
-        </div>
-
-        <div id="streamSection" class="stream-section">
-          <strong>Stream URL</strong>
-          <div class="stream-info" id="streamInfo"></div>
-        </div>
       </div>
-    </div>
+
+      <div class="sidebar-nav">
+        <div class="sidebar-section-title">Navigation</div>
+        <button class="nav-btn active" id="workspaceBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+          Workspace
+        </button>
+        <button class="nav-btn" id="openLogsBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          System Logs
+        </button>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <div id="workspaceView" style="display: flex; flex: 1; height: 100%; width: 100%;">
+        <section class="search-pane">
+          <div class="pane-header">
+            <div class="sidebar-section-title" style="margin-bottom: 8px;">Method: searchResults</div>
+            <div class="search-bar">
+              <div class="search-input-wrapper">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" class="search-box" id="searchInput" placeholder="Search keywords...">
+              </div>
+              <button id="searchSubmitBtn" class="search-btn">Search</button>
+            </div>
+            <div class="error" id="searchError"></div>
+          </div>
+
+          <div class="results-container">
+            <div class="items-list" id="results"></div>
+          </div>
+        </section>
+
+        <section class="inspector-pane">
+          <div id="emptyState" class="empty-state">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <h4>No Content Selected</h4>
+            <p>Load a module, run a search query, and select an item from the list to begin inspecting details and content.</p>
+          </div>
+
+          <div class="container">
+            <div class="detail-panel" id="detailView">
+              <button id="backBtn" class="back-btn">← Back</button>
+              <div class="error" id="detailError"></div>
+              
+              <div class="detail-header">
+                <div class="poster-img">
+                  <img id="posterImg" src="" alt="">
+                  <div class="poster-fallback">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                  </div>
+                </div>
+                <div class="detail-info">
+                  <div class="detail-title" id="detailTitle"></div>
+                  <div class="detail-meta-row">
+                    <span class="badge anime" id="moduleTypeBadge">Anime</span>
+                    <span class="detail-meta" id="detailMeta"></span>
+                  </div>
+                  <div class="detail-desc" id="detailDesc"></div>
+                </div>
+              </div>
+
+              <div class="inspector-tabs">
+                <button class="tab-btn active" id="tabContentBtn">Content & Methods</button>
+                <button class="tab-btn" id="tabJsonBtn">Raw Details JSON</button>
+              </div>
+
+              <div class="tab-content active" id="tabContentArea">
+                <div id="episodesSection" style="display:none;">
+                  <div class="section-title-row">
+                    <h4 id="sectionTitle">Episodes</h4>
+                    <div class="manga-controls" id="mangaControls" style="display: none;">
+                      <select id="langSelect" class="lang-select"></select>
+                    </div>
+                  </div>
+                  <div class="loading" id="episodesLoading">
+                    <div class="spinner"></div>
+                    <span id="loadingText">Loading...</span>
+                  </div>
+                  <div class="episodes-grid" id="episodesGrid"></div>
+                </div>
+
+                <div id="streamSection" class="stream-section">
+                  <div class="console-header-bar">
+                    <div class="console-header-title">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                      Method Output: extractStreamUrl
+                    </div>
+                    <button class="copy-btn" id="copyStreamBtn">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                      Copy Stream URL
+                    </button>
+                  </div>
+                  <div class="console-box">
+                    <div class="stream-info" id="streamInfo"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tab-content" id="tabJsonArea">
+                <div class="console-header-bar">
+                  <div class="console-header-title">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                    Method Output: extractDetails
+                  </div>
+                  <button class="copy-btn" id="copyJsonBtn">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    Copy JSON
+                  </button>
+                </div>
+                <div class="console-box">
+                  <pre><code id="rawJsonView">{}</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="logs-pane" id="logsView" style="display: none; flex: 1; height: 100%; flex-direction: column; width: 100%;">
+        <div class="pane-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 16px 20px; border-bottom: 1px solid var(--border-color);">
+          <div>
+            <div class="sidebar-section-title" style="margin-bottom: 4px;">System Terminal</div>
+            <p style="font-size: 11px; color: var(--text-secondary);">Real-time stream execution and hot reload logs</p>
+          </div>
+          <button class="copy-btn" id="clearInlineLogsBtn">Clear Logs</button>
+        </div>
+        <div class="console-box">
+          <div id="inlineLogsContent"></div>
+        </div>
+      </section>
+    </main>
   </div>
 
   <div class="stream-modal" id="streamModal">
     <div class="stream-modal-content">
-      <div class="stream-modal-header">Stream Information</div>
+      <div class="stream-modal-header">
+        <span>Stream Information</span>
+        <button class="reader-close-btn" onclick="document.getElementById('streamModal').classList.remove('active')">×</button>
+      </div>
       <div class="stream-modal-body" id="streamModalBody"></div>
       <div class="stream-modal-footer">
+        <button class="modal-btn" id="copyModalStreamBtn">Copy Details</button>
         <button class="modal-btn" onclick="document.getElementById('streamModal').classList.remove('active')">Close</button>
       </div>
     </div>
   </div>
 
-  <!-- Scanlation Group Modal -->
   <div class="stream-modal" id="groupModal">
-    <div class="stream-modal-content" style="max-width: 450px;">
-      <div class="stream-modal-header">Select Scanlation Group</div>
-      <div id="groupModalBody" style="display: flex; flex-direction: column; gap: 10px; max-height: 50vh; overflow-y: auto; margin-bottom: 20px;">
-        <!-- Group buttons will be inserted dynamically -->
+    <div class="stream-modal-content" style="max-width: 420px;">
+      <div class="stream-modal-header">
+        <span>Select Scanlation Group</span>
+        <button class="reader-close-btn" onclick="document.getElementById('groupModal').classList.remove('active')">×</button>
+      </div>
+      <div id="groupModalBody" style="display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; margin-bottom: 16px;">
       </div>
       <div class="stream-modal-footer">
         <button class="modal-btn" onclick="document.getElementById('groupModal').classList.remove('active')">Cancel</button>
@@ -801,7 +1287,6 @@
     </div>
   </div>
 
-  <!-- Manga Reader Modal -->
   <div class="reader-modal" id="readerModal">
     <div class="reader-header">
       <div class="reader-title-section">
@@ -814,16 +1299,14 @@
     <div class="reader-body" id="readerBody">
       <div class="reader-loading" id="readerLoading">
         <div class="spinner"></div>
-        <span>Loading pages...</span>
+        <span style="margin-top: 10px;">Loading pages...</span>
       </div>
       <div class="reader-content" id="readerContent">
-        <!-- <img> elements go here -->
       </div>
     </div>
     <button class="reader-floating-btn" id="readerScrollTopBtn" title="Scroll to Top" style="display: none;">↑</button>
   </div>
 
-  <!-- Novel Reader Modal -->
   <div class="reader-modal" id="novelReaderModal">
     <div class="reader-header">
       <div class="reader-title-section">
@@ -835,10 +1318,9 @@
     <div class="reader-body" id="novelReaderBody">
       <div class="reader-loading" id="novelReaderLoading">
         <div class="spinner"></div>
-        <span>Loading content...</span>
+        <span style="margin-top: 10px;">Loading content...</span>
       </div>
       <div id="novelReaderContent">
-        <!-- Novel text HTML will be inserted here -->
       </div>
     </div>
     <button class="reader-floating-btn" id="novelReaderScrollTopBtn" title="Scroll to Top" style="display: none;">↑</button>
