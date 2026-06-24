@@ -1,7 +1,7 @@
 # Sora Windows Development Port
 
-<p align="left">
-  <img src="icon.png" alt="Sora Dev Icon" width="96" height="96" style="border-radius: 8px;" />
+<p align="center">
+  <img src="icon.png" alt="Sora Dev Icon" width="250" height="250" style="border-radius: 8px;" />
 </p>
 
 A Windows development port of the native **Sora iOS/macOS streaming application**, built with Electron and vanilla JavaScript. Features a full UI that mirrors the native app's architecture, allowing you to develop, scan, and test Sora modules on Windows before deploying to iOS/macOS.
