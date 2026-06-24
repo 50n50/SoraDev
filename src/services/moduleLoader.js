@@ -10,44 +10,83 @@ const __dirname = path.dirname(__filename);
 function stripCommentsAndStrings(code) {
   let result = '';
   let i = 0;
-  let inLineComment = false;
-  let inBlockComment = false;
-  let inString = false;
-  let stringChar = '';
-
+  let state = 'code';
+  let inRegexBracket = false;
+  
   while (i < code.length) {
     const char = code[i];
-    const nextChar = code[i + 1];
-
-    if (inLineComment) {
-      if (char === '\n' || char === '\r') {
-        inLineComment = false;
-        result += char;
-      }
-    } else if (inBlockComment) {
-      if (char === '*' && nextChar === '/') {
-        inBlockComment = false;
-        i++; // skip '/'
-      }
-    } else if (inString) {
-      if (char === '\\') {
-        i++;
-      } else if (char === stringChar) {
-        inString = false;
-      }
-    } else {
-      if (char === '/' && nextChar === '/') {
-        inLineComment = true;
-        i++;
-      } else if (char === '/' && nextChar === '*') {
-        inBlockComment = true;
-        i++;
-      } else if (char === "'" || char === '"' || char === '`') {
-        inString = true;
-        stringChar = char;
-      } else {
-        result += char;
-      }
+    const nextChar = code[i + 1] || '';
+    
+    switch (state) {
+      case 'code':
+        if (char === '/' && nextChar === '/') {
+          state = 'single-line-comment';
+          i++;
+        } else if (char === '/' && nextChar === '*') {
+          state = 'multi-line-comment';
+          i++;
+        } else if (char === "'" || char === '"' || char === '`') {
+          state = char === "'" ? 'string-single' : (char === '"' ? 'string-double' : 'template-literal');
+          result += char + char;
+        } else if (char === '/') {
+          state = 'regex';
+        } else {
+          result += char;
+        }
+        break;
+        
+      case 'single-line-comment':
+        if (char === '\n' || char === '\r') {
+          state = 'code';
+          result += char;
+        }
+        break;
+        
+      case 'multi-line-comment':
+        if (char === '*' && nextChar === '/') {
+          state = 'code';
+          i++;
+        }
+        break;
+        
+      case 'string-single':
+        if (char === '\\') {
+          i++;
+        } else if (char === "'") {
+          state = 'code';
+        }
+        break;
+        
+      case 'string-double':
+        if (char === '\\') {
+          i++;
+        } else if (char === '"') {
+          state = 'code';
+        }
+        break;
+        
+      case 'template-literal':
+        if (char === '\\') {
+          i++;
+        } else if (char === '`') {
+          state = 'code';
+        }
+        break;
+        
+      case 'regex':
+        if (char === '\\') {
+          i++;
+        } else if (char === '[') {
+          inRegexBracket = true;
+        } else if (char === ']' && inRegexBracket) {
+          inRegexBracket = false;
+        } else if (char === '/' && !inRegexBracket) {
+          state = 'code';
+        } else if (char === '\n' || char === '\r') {
+          state = 'code';
+          result += char;
+        }
+        break;
     }
     i++;
   }

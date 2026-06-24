@@ -37,7 +37,10 @@
       ]
     },
     "publish": {
-      "provider": "github"
+      "provider": "github",
+      "owner": "50n50",
+      "repo": "SoraDev",
+      "releaseType": "release"
     },
     "files": [
       "**/*",
