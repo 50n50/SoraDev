@@ -1089,6 +1089,103 @@
     .logs-pane .log-entry.module { color: #c084fc; }
     .logs-pane .log-entry.module-error { color: #ef4444; font-weight: 600; }
     .logs-pane .log-entry.module-warn { color: #fb923c; }
+
+    /* Mass Tester Styles */
+    .tester-step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      font-size: 9px;
+      font-weight: 700;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      margin-right: 6px;
+      transition: all 0.2s;
+    }
+    .tester-step-badge.pending {
+      color: var(--text-muted);
+    }
+    .tester-step-badge.running {
+      border-color: #fbbf24;
+      background: rgba(251, 191, 36, 0.1);
+      color: #fbbf24;
+      animation: pulse 1s infinite alternate;
+    }
+    .tester-step-badge.passed {
+      border-color: var(--badge-manga-text);
+      background: var(--badge-manga-bg);
+      color: var(--badge-manga-text);
+    }
+    .tester-step-badge.failed {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+    .tester-step-badge.skipped {
+      opacity: 0.4;
+      border-style: dashed;
+    }
+    @keyframes pulse {
+      from { transform: scale(1); opacity: 0.8; }
+      to { transform: scale(1.05); opacity: 1; }
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+    }
+    .status-pill.passed {
+      background: var(--badge-manga-bg);
+      color: var(--badge-manga-text);
+      border-color: var(--badge-manga-border);
+    }
+    .status-pill.failed {
+      background: rgba(239, 68, 68, 0.08);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+    .status-pill.running {
+      background: rgba(251, 191, 36, 0.08);
+      color: #fbbf24;
+      border-color: rgba(251, 191, 36, 0.2);
+      animation: pulse 1s infinite alternate;
+    }
+    .status-pill.idle {
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      border-color: var(--border-color);
+    }
+
+    .tester-row {
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tester-row:hover {
+      background: var(--bg-surface-hover);
+    }
+    .tester-row.expanded {
+      background: var(--bg-surface);
+    }
+    .tester-details-row {
+      border-bottom: 1px solid var(--border-color);
+      background: #07080b;
+      display: none;
+    }
+    .tester-details-row.active {
+      display: table-row;
+    }
   </style>
 </head>
 <body>
@@ -1134,6 +1231,10 @@
         <button class="nav-btn" id="openLogsBtn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
           System Logs
+        </button>
+        <button class="nav-btn" id="massTesterBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          Mass Tester
         </button>
       </div>
     </aside>
@@ -1243,6 +1344,114 @@
           </div>
         </section>
       </div>
+
+      <section class="mass-tester-pane" id="massTesterView" style="display: none; flex: 1; height: 100%; flex-direction: column; width: 100%; overflow: hidden;">
+        <div class="pane-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 16px 20px; border-bottom: 1px solid var(--border-color);">
+          <div>
+            <div class="sidebar-section-title" style="margin-bottom: 4px;">Mass Module Tester</div>
+            <p style="font-size: 11px; color: var(--text-secondary);" id="selectedDirLabel">No directory selected</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="load-btn" id="pickTesterDirBtn" style="width: auto;">Select Directory</button>
+            <button class="load-btn" id="runTesterBtn" style="width: auto; background: #f6821f;" disabled>Run All Tests</button>
+            <button class="load-btn" id="cancelTesterBtn" style="width: auto; background: #ef4444; display: none;">Stop Tests</button>
+          </div>
+        </div>
+        
+        <div id="testerDashboard" style="display: none; padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-sidebar); flex-direction: column; gap: 12px; width: 100%;">
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <div style="display: flex; gap: 20px;">
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Total Modules</span>
+                <span id="statTotal" style="font-size: 18px; font-weight: 700;">0</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Passed</span>
+                <span id="statPassed" style="font-size: 18px; font-weight: 700; color: var(--badge-manga-text);">0</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Failed</span>
+                <span id="statFailed" style="font-size: 18px; font-weight: 700; color: #ef4444;">0</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Pending / Running</span>
+                <span id="statPending" style="font-size: 18px; font-weight: 700; color: #fbbf24;">0</span>
+              </div>
+            </div>
+            <div id="testerProgressText" style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">0%</div>
+          </div>
+          <div style="width: 100%; height: 6px; background: var(--bg-surface); border-radius: 3px; overflow: hidden;">
+            <div id="testerProgressBar" style="width: 0%; height: 100%; background: var(--primary); transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <!-- Custom Search Keywords Configuration -->
+        <div id="testerSettings" style="display: none; padding: 12px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-sidebar); flex-wrap: wrap; gap: 12px; align-items: center; width: 100%;">
+          <div style="font-size: 9px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-right: 8px; letter-spacing: 0.5px;">Search Keywords:</div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 11px; color: var(--text-secondary);">Anime:</span>
+            <input type="text" class="search-box" id="keywordAnime" value="one piece" style="width: 100px; padding: 4px 8px;">
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 11px; color: var(--text-secondary);">Manga:</span>
+            <input type="text" class="search-box" id="keywordManga" value="frieren" style="width: 100px; padding: 4px 8px;">
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 11px; color: var(--text-secondary);">Novel:</span>
+            <input type="text" class="search-box" id="keywordNovel" value="the" style="width: 100px; padding: 4px 8px;">
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 11px; color: var(--text-secondary);">Movie:</span>
+            <input type="text" class="search-box" id="keywordMovie" value="interstellar" style="width: 100px; padding: 4px 8px;">
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 11px; color: var(--text-secondary);">TV Show:</span>
+            <input type="text" class="search-box" id="keywordTv" value="breaking bad" style="width: 100px; padding: 4px 8px;">
+          </div>
+        </div>
+
+        <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; background: var(--bg-base); width: 100%;">
+          <div class="search-input-wrapper" style="flex: 1; max-width: 300px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" class="search-box" id="testerSearchInput" placeholder="Filter modules by name..." style="padding-left: 30px;">
+          </div>
+          <select id="testerTypeFilter" class="lang-select">
+            <option value="all">All Types</option>
+            <option value="anime">Anime</option>
+            <option value="manga">Manga</option>
+            <option value="novel">Novel</option>
+          </select>
+          <select id="testerStatusFilter" class="lang-select">
+            <option value="all">All Statuses</option>
+            <option value="passed">Passed</option>
+            <option value="failed">Failed</option>
+            <option value="running">Running</option>
+            <option value="idle">Idle / Pending</option>
+          </select>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; padding: 20px; width: 100%;">
+          <div id="testerEmptyState" style="text-align: center; color: var(--text-muted); padding: 40px; margin-top: 40px;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; color: var(--border-focus);"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="15" y2="17"></line></svg>
+            <p>Select a folder containing your modules to begin testing.</p>
+          </div>
+          <div id="testerTableContainer" style="display: none; width: 100%;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 12px;">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600;">
+                  <th style="padding: 10px; width: 220px;">Module Name</th>
+                  <th style="padding: 10px; width: 100px;">Type</th>
+                  <th style="padding: 10px; width: 120px;">Status</th>
+                  <th style="padding: 10px; width: 220px;">Steps (LD → SH → DT → EP → ST)</th>
+                  <th style="padding: 10px; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="testerTbody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
       <section class="logs-pane" id="logsView" style="display: none; flex: 1; height: 100%; flex-direction: column; width: 100%;">
         <div class="pane-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 16px 20px; border-bottom: 1px solid var(--border-color);">

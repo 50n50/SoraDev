@@ -17,5 +17,14 @@ contextBridge.exposeInMainWorld('api', {
   maximizeWindow: () => ipcRenderer.send('maximize-window'),
   closeWindow: () => ipcRenderer.send('close-window'),
   openLogs: () => ipcRenderer.send('open-logs'),
-  playWithMpv: (url, headers) => ipcRenderer.invoke('play-with-mpv', url, headers)
+  playWithMpv: (url, headers) => ipcRenderer.invoke('play-with-mpv', url, headers),
+  pickDirectory: () => ipcRenderer.invoke('pick-directory'),
+  runMassTester: (dirPath, options) => ipcRenderer.invoke('run-mass-tester', dirPath, options),
+  cancelMassTester: () => ipcRenderer.invoke('cancel-mass-tester'),
+  runSingleModuleTest: (dirPath, folderName, customKeyword) => ipcRenderer.invoke('run-single-module-test', dirPath, folderName, customKeyword),
+  onMassTesterUpdate: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('mass-tester-update', subscription);
+    return () => ipcRenderer.removeListener('mass-tester-update', subscription);
+  }
 });

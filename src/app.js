@@ -7,6 +7,12 @@ let state = {
   currentMangaTitle: ''
 };
 
+let testerState = {
+  selectedDir: null,
+  modules: [],
+  isTesting: false
+};
+
 const moduleInfo = document.getElementById('moduleInfo');
 const searchInput = document.getElementById('searchInput');
 const searchSubmitBtn = document.getElementById('searchSubmitBtn');
@@ -176,20 +182,38 @@ window.playStreamInMpv = (url, headersJsonStr) => {
   window.api.playWithMpv(url, headers);
 };
 
-if (workspaceBtn && openLogsBtn && workspaceView && logsView) {
-  workspaceBtn.addEventListener('click', () => {
-    workspaceBtn.classList.add('active');
-    openLogsBtn.classList.remove('active');
-    workspaceView.style.display = 'flex';
-    logsView.style.display = 'none';
-  });
+const massTesterBtn = document.getElementById('massTesterBtn');
+const massTesterView = document.getElementById('massTesterView');
 
-  openLogsBtn.addEventListener('click', () => {
-    openLogsBtn.classList.add('active');
-    workspaceBtn.classList.remove('active');
-    workspaceView.style.display = 'none';
-    logsView.style.display = 'flex';
-  });
+function selectView(viewName) {
+  if (workspaceBtn) workspaceBtn.classList.remove('active');
+  if (openLogsBtn) openLogsBtn.classList.remove('active');
+  if (massTesterBtn) massTesterBtn.classList.remove('active');
+
+  if (workspaceView) workspaceView.style.display = 'none';
+  if (logsView) logsView.style.display = 'none';
+  if (massTesterView) massTesterView.style.display = 'none';
+
+  if (viewName === 'workspace') {
+    if (workspaceBtn) workspaceBtn.classList.add('active');
+    if (workspaceView) workspaceView.style.display = 'flex';
+  } else if (viewName === 'logs') {
+    if (openLogsBtn) openLogsBtn.classList.add('active');
+    if (logsView) logsView.style.display = 'flex';
+  } else if (viewName === 'tester') {
+    if (massTesterBtn) massTesterBtn.classList.add('active');
+    if (massTesterView) massTesterView.style.display = 'flex';
+  }
+}
+
+if (workspaceBtn) {
+  workspaceBtn.addEventListener('click', () => selectView('workspace'));
+}
+if (openLogsBtn) {
+  openLogsBtn.addEventListener('click', () => selectView('logs'));
+}
+if (massTesterBtn) {
+  massTesterBtn.addEventListener('click', () => selectView('tester'));
 }
 
 if (clearInlineLogsBtn) {
@@ -882,6 +906,467 @@ window.api.onLog((message) => {
     inlineLogsContent.scrollTop = inlineLogsContent.scrollHeight;
   }
 });
+
+// --- Mass Module Tester Integration ---
+const pickTesterDirBtn = document.getElementById('pickTesterDirBtn');
+const runTesterBtn = document.getElementById('runTesterBtn');
+const cancelTesterBtn = document.getElementById('cancelTesterBtn');
+const selectedDirLabel = document.getElementById('selectedDirLabel');
+const testerDashboard = document.getElementById('testerDashboard');
+const testerSettings = document.getElementById('testerSettings');
+const statTotal = document.getElementById('statTotal');
+const statPassed = document.getElementById('statPassed');
+const statFailed = document.getElementById('statFailed');
+const statPending = document.getElementById('statPending');
+const testerProgressText = document.getElementById('testerProgressText');
+const testerProgressBar = document.getElementById('testerProgressBar');
+const testerSearchInput = document.getElementById('testerSearchInput');
+const testerTypeFilter = document.getElementById('testerTypeFilter');
+const testerStatusFilter = document.getElementById('testerStatusFilter');
+const testerEmptyState = document.getElementById('testerEmptyState');
+const testerTableContainer = document.getElementById('testerTableContainer');
+const testerTbody = document.getElementById('testerTbody');
+
+function renderTesterTable() {
+  if (!testerTbody) return;
+  testerTbody.innerHTML = '';
+
+  const searchText = testerSearchInput ? testerSearchInput.value.trim().toLowerCase() : '';
+  const typeFilter = testerTypeFilter ? testerTypeFilter.value : 'all';
+  const statusFilter = testerStatusFilter ? testerStatusFilter.value : 'all';
+
+  const filtered = testerState.modules.filter(mod => {
+    if (searchText && !mod.name.toLowerCase().includes(searchText) && !mod.folderName.toLowerCase().includes(searchText)) {
+      return false;
+    }
+    if (typeFilter !== 'all') {
+      const typeNorm = (mod.type || '').toLowerCase();
+      if (typeFilter === 'manga' && !typeNorm.startsWith('manga')) return false;
+      if (typeFilter === 'novel' && !typeNorm.startsWith('novel')) return false;
+      if (typeFilter === 'anime' && (typeNorm.startsWith('manga') || typeNorm.startsWith('novel'))) return false;
+    }
+    if (statusFilter !== 'all') {
+      if (mod.status !== statusFilter) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    testerTbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px;font-size:12px;">No modules match the filters</td></tr>`;
+    return;
+  }
+
+  filtered.forEach((mod) => {
+    const mainRow = document.createElement('tr');
+    mainRow.className = 'tester-row';
+    mainRow.id = `tester-row-${mod.folderName}`;
+    
+    let statusClass = 'idle';
+    if (mod.status === 'passed') statusClass = 'passed';
+    else if (mod.status === 'failed') statusClass = 'failed';
+    else if (mod.status === 'running') statusClass = 'running';
+    
+    const statusText = mod.status === 'idle' ? 'Pending' : mod.status;
+    const statusBadge = `<span class="status-pill ${statusClass}">${statusText}</span>`;
+
+    const stepsOrder = ['load', 'search', 'detail', 'episodes', 'stream'];
+    const stepLabels = { load: 'LD', search: 'SH', detail: 'DT', episodes: 'EP', stream: 'ST' };
+    
+    const isManga = (mod.type || '').toLowerCase().startsWith('manga');
+    const isNovel = (mod.type || '').toLowerCase().startsWith('novel');
+    if (isManga || isNovel) {
+      stepLabels.episodes = 'CH';
+      stepLabels.stream = isManga ? 'IM' : 'TX';
+    }
+
+    let stepsHtml = '';
+    stepsOrder.forEach(step => {
+      const stepData = mod.steps[step] || { status: 'pending' };
+      let stepClass = 'pending';
+      if (stepData.status === 'passed') stepClass = 'passed';
+      else if (stepData.status === 'failed') stepClass = 'failed';
+      else if (stepData.status === 'running') stepClass = 'running';
+      else if (stepData.status === 'skipped') stepClass = 'skipped';
+      
+      let titleAttr = '';
+      if (stepData.error) titleAttr = `title="Error: ${stepData.error.replace(/"/g, '&quot;')}"`;
+      else if (stepData.query) titleAttr = `title="Search query: ${stepData.query}"`;
+      else if (stepData.resultCount) titleAttr = `title="Found: ${stepData.resultCount}"`;
+      else if (stepData.streamUrl) titleAttr = `title="Stream URL: ${stepData.streamUrl}"`;
+
+      stepsHtml += `<span class="tester-step-badge ${stepClass}" ${titleAttr}>${stepLabels[step]}</span>`;
+    });
+
+    let actionsHtml = '';
+    if (mod.status === 'passed' && mod.streamData && mod.streamData.streamUrl) {
+      const escUrl = mod.streamData.streamUrl.replace(/'/g, "\\'");
+      const escHeaders = mod.streamData.headers ? encodeURIComponent(JSON.stringify(mod.streamData.headers)) : '';
+      actionsHtml += `<button class="copy-btn" onclick="event.stopPropagation(); window.playStreamInMpv('${escUrl}', '${escHeaders}')" style="display:inline-flex; align-items:center; gap:4px; margin-right:8px; background:var(--primary-muted); border-color:var(--primary); color:var(--primary); font-size:10px; padding:3px 6px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>Play Stream</button>`;
+    }
+    
+    actionsHtml += `<button class="copy-btn" onclick="event.stopPropagation(); window.runSingleTesterModule('${mod.folderName}')" style="display:inline-flex; font-size:10px; padding:3px 6px;">Run Test</button>`;
+
+    let typeClass = 'anime';
+    let typeLabel = 'Anime';
+    if (isManga) {
+      typeClass = 'manga';
+      typeLabel = 'Manga';
+    } else if (isNovel) {
+      typeClass = 'novel';
+      typeLabel = 'Novel';
+    } else if (mod.type === 'movies' || mod.type === 'movie') {
+      typeClass = 'anime';
+      typeLabel = 'Movie';
+    } else if (mod.type === 'tv shows' || mod.type === 'tv show') {
+      typeClass = 'anime';
+      typeLabel = 'TV Show';
+    }
+
+    mainRow.innerHTML = `
+      <td style="padding: 10px; font-weight: 600; border-bottom: 1px solid var(--border-color);">
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <span>${mod.name}</span>
+          <span style="font-size:10px; font-weight:normal; color:var(--text-muted); font-family:var(--font-mono);">${mod.folderName}</span>
+        </div>
+      </td>
+      <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><span class="badge ${typeClass}">${typeLabel}</span></td>
+      <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${statusBadge}</td>
+      <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${stepsHtml}</td>
+      <td style="padding: 10px; border-bottom: 1px solid var(--border-color); text-align: right;">${actionsHtml}</td>
+    `;
+
+    const detailsRow = document.createElement('tr');
+    detailsRow.className = 'tester-details-row';
+    detailsRow.id = `tester-details-${mod.folderName}`;
+    
+    let logLines = '';
+    if (mod.logs && mod.logs.length > 0) {
+      logLines = mod.logs.map(line => {
+        let entryClass = '';
+        if (line.includes('[SUCCESS]') || line.includes('passed')) entryClass = 'success';
+        else if (line.includes('failed') || line.includes('Error')) entryClass = 'error';
+        else if (line.includes('[WARNING]') || line.includes('warn')) entryClass = 'warning';
+        else if (line.includes('Loading')) entryClass = 'info';
+        return `<div class="log-entry ${entryClass}" style="margin-bottom:2px; font-family:var(--font-mono); font-size:11px; white-space:pre-wrap; word-break:break-all;">${line}</div>`;
+      }).join('');
+    } else {
+      logLines = '<div style="color:var(--text-muted); font-size:11px;">No logs available yet. Run a test to begin.</div>';
+    }
+
+    let errorBlock = '';
+    if (mod.errorMessage) {
+      errorBlock = `
+        <div style="margin-bottom: 12px; padding: 10px; border-radius: 4px; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); color: #f87171; font-weight: 600; font-size:11px;">
+          Failed at step [${mod.errorStep}]: ${mod.errorMessage}
+        </div>
+      `;
+    }
+
+    detailsRow.innerHTML = `
+      <td colspan="5" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);">
+        <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+          ${errorBlock}
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Execution Terminal Log</div>
+            <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">Duration: ${mod.durationMs}ms</div>
+          </div>
+          <div class="console-box" style="margin:0; padding:12px; border:1px solid var(--border-color); background:#040508; max-height:220px; width:100%; overflow-y:auto;">
+            <code>${logLines}</code>
+          </div>
+        </div>
+      </td>
+    `;
+
+    mainRow.addEventListener('click', () => {
+      const isActive = detailsRow.classList.contains('active');
+      if (isActive) {
+        mainRow.classList.remove('expanded');
+        detailsRow.classList.remove('active');
+      } else {
+        mainRow.classList.add('expanded');
+        detailsRow.classList.add('active');
+      }
+    });
+
+    testerTbody.appendChild(mainRow);
+    testerTbody.appendChild(detailsRow);
+  });
+}
+
+function updateStatsDashboard() {
+  if (!testerState.modules.length) return;
+  const total = testerState.modules.length;
+  const passed = testerState.modules.filter(m => m.status === 'passed').length;
+  const failed = testerState.modules.filter(m => m.status === 'failed').length;
+  const running = testerState.modules.filter(m => m.status === 'running').length;
+  const completed = passed + failed;
+  const pending = total - completed - running;
+
+  if (statTotal) statTotal.textContent = total;
+  if (statPassed) statPassed.textContent = passed;
+  if (statFailed) statFailed.textContent = failed;
+  if (statPending) statPending.textContent = pending + running;
+
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+  if (testerProgressText) testerProgressText.textContent = `${percent}%`;
+  if (testerProgressBar) testerProgressBar.style.width = `${percent}%`;
+}
+
+async function pickTesterDir() {
+  try {
+    const result = await window.api.pickDirectory();
+    if (result.canceled) return;
+    
+    testerState.selectedDir = result.path;
+    testerState.modules = (result.modules || [])
+      .filter(mod => mod.folderName && !mod.folderName.startsWith('.'))
+      .map(mod => ({
+      name: mod.name,
+      folderName: mod.folderName,
+      type: mod.type,
+      status: mod.error ? 'failed' : 'idle',
+      errorStep: mod.error ? 'load' : null,
+      errorMessage: mod.error || null,
+      durationMs: 0,
+      logs: mod.error ? [mod.error] : [],
+      streamData: null,
+      steps: {
+        load: mod.error ? { status: 'failed', error: mod.error } : { status: 'pending' },
+        search: mod.error ? { status: 'skipped' } : { status: 'pending' },
+        detail: mod.error ? { status: 'skipped' } : { status: 'pending' },
+        episodes: mod.error ? { status: 'skipped' } : { status: 'pending' },
+        stream: mod.error ? { status: 'skipped' } : { status: 'pending' }
+      }
+    }));
+    testerState.isTesting = false;
+
+    if (selectedDirLabel) {
+      selectedDirLabel.textContent = result.path;
+      selectedDirLabel.title = result.path;
+    }
+    
+    if (testerState.modules.length > 0) {
+      if (runTesterBtn) runTesterBtn.disabled = false;
+      if (testerEmptyState) testerEmptyState.style.display = 'none';
+      if (testerTableContainer) testerTableContainer.style.display = 'block';
+      if (testerDashboard) testerDashboard.style.display = 'flex';
+      if (testerSettings) testerSettings.style.display = 'flex';
+      updateStatsDashboard();
+    } else {
+      if (runTesterBtn) runTesterBtn.disabled = true;
+      if (testerEmptyState) {
+        testerEmptyState.style.display = 'block';
+        testerEmptyState.innerHTML = `
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; color: #ef4444;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <p>No valid modules (JS + JSON folders) found in the selected directory.</p>
+        `;
+      }
+      if (testerTableContainer) testerTableContainer.style.display = 'none';
+      if (testerDashboard) testerDashboard.style.display = 'none';
+      if (testerSettings) testerSettings.style.display = 'none';
+    }
+    
+    renderTesterTable();
+  } catch (err) {
+    console.error('Directory picking failed:', err);
+    alert('Failed to read directory: ' + err.message);
+  }
+}
+
+async function runTester() {
+  if (!testerState.selectedDir || testerState.isTesting) return;
+
+  testerState.isTesting = true;
+  if (runTesterBtn) runTesterBtn.disabled = true;
+  if (pickTesterDirBtn) pickTesterDirBtn.disabled = true;
+  if (cancelTesterBtn) cancelTesterBtn.style.display = 'block';
+
+  testerState.modules.forEach(mod => {
+    if (mod.status !== 'failed' || !mod.errorMessage || !mod.errorMessage.includes('Manifest')) {
+      mod.status = 'idle';
+      mod.steps = {
+        load: { status: 'pending' },
+        search: { status: 'pending' },
+        detail: { status: 'pending' },
+        episodes: { status: 'pending' },
+        stream: { status: 'pending' }
+      };
+      mod.logs = [];
+      mod.streamData = null;
+    }
+  });
+
+  updateStatsDashboard();
+  renderTesterTable();
+
+  const kwAnime = document.getElementById('keywordAnime');
+  const kwManga = document.getElementById('keywordManga');
+  const kwNovel = document.getElementById('keywordNovel');
+  const kwMovie = document.getElementById('keywordMovie');
+  const kwTv = document.getElementById('keywordTv');
+
+  const keywords = {
+    anime: kwAnime ? kwAnime.value.trim() : 'one piece',
+    manga: kwManga ? kwManga.value.trim() : 'frieren',
+    novel: kwNovel ? kwNovel.value.trim() : 'the',
+    movie: kwMovie ? kwMovie.value.trim() : 'interstellar',
+    tv: kwTv ? kwTv.value.trim() : 'breaking bad'
+  };
+
+  try {
+    await window.api.runMassTester(testerState.selectedDir, {
+      concurrencyLimit: 4,
+      keywords: keywords
+    });
+  } catch (err) {
+    console.error('Failed to run mass tester:', err);
+    testerState.isTesting = false;
+    if (runTesterBtn) runTesterBtn.disabled = false;
+    if (pickTesterDirBtn) pickTesterDirBtn.disabled = false;
+    if (cancelTesterBtn) cancelTesterBtn.style.display = 'none';
+    updateStatsDashboard();
+  }
+}
+
+async function cancelTester() {
+  try {
+    await window.api.cancelMassTester();
+  } catch (e) {}
+  
+  testerState.isTesting = false;
+  if (runTesterBtn) runTesterBtn.disabled = false;
+  if (pickTesterDirBtn) pickTesterDirBtn.disabled = false;
+  if (cancelTesterBtn) cancelTesterBtn.style.display = 'none';
+  
+  testerState.modules.forEach(mod => {
+    if (mod.status === 'running' || mod.status === 'idle') {
+      mod.status = 'idle';
+      const order = ['load', 'search', 'detail', 'episodes', 'stream'];
+      order.forEach(st => {
+        if (mod.steps[st].status === 'running' || mod.steps[st].status === 'pending') {
+          mod.steps[st].status = 'skipped';
+        }
+      });
+    }
+  });
+  
+  updateStatsDashboard();
+  renderTesterTable();
+}
+
+window.runSingleTesterModule = async (folderName) => {
+  const modIdx = testerState.modules.findIndex(m => m.folderName === folderName);
+  if (modIdx === -1) return;
+
+  const originalMod = testerState.modules[modIdx];
+  originalMod.status = 'running';
+  originalMod.steps = {
+    load: { status: 'running' },
+    search: { status: 'pending' },
+    detail: { status: 'pending' },
+    episodes: { status: 'pending' },
+    stream: { status: 'pending' }
+  };
+  originalMod.logs = ['[INFO] Manually started single test run.'];
+  originalMod.streamData = null;
+
+  updateStatsDashboard();
+  renderTesterTable();
+
+  // Determine customized keyword based on module type
+  const mType = (originalMod.type || 'anime').toLowerCase().trim();
+  let customKeyword = '';
+  if (mType.startsWith('manga')) {
+    const el = document.getElementById('keywordManga');
+    customKeyword = el ? el.value.trim() : 'frieren';
+  } else if (mType.startsWith('novel')) {
+    const el = document.getElementById('keywordNovel');
+    customKeyword = el ? el.value.trim() : 'the';
+  } else if (mType === 'movies' || mType === 'movie') {
+    const el = document.getElementById('keywordMovie');
+    customKeyword = el ? el.value.trim() : 'interstellar';
+  } else if (mType === 'tv shows' || mType === 'tv show') {
+    const el = document.getElementById('keywordTv');
+    customKeyword = el ? el.value.trim() : 'breaking bad';
+  } else {
+    const el = document.getElementById('keywordAnime');
+    customKeyword = el ? el.value.trim() : 'one piece';
+  }
+
+  setTimeout(() => {
+    const mainRow = document.getElementById(`tester-row-${folderName}`);
+    const detailsRow = document.getElementById(`tester-details-${folderName}`);
+    if (mainRow && detailsRow && !detailsRow.classList.contains('active')) {
+      mainRow.classList.add('expanded');
+      detailsRow.classList.add('active');
+      detailsRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, 50);
+
+  try {
+    const res = await window.api.runSingleModuleTest(testerState.selectedDir, folderName, customKeyword);
+    if (res.success && res.result) {
+      testerState.modules[modIdx] = res.result;
+    } else if (res.error) {
+      testerState.modules[modIdx].status = 'failed';
+      testerState.modules[modIdx].errorMessage = res.error;
+      testerState.modules[modIdx].steps.load.status = 'failed';
+      testerState.modules[modIdx].steps.load.error = res.error;
+    }
+  } catch (err) {
+    testerState.modules[modIdx].status = 'failed';
+    testerState.modules[modIdx].errorMessage = err.message;
+    testerState.modules[modIdx].steps.load.status = 'failed';
+    testerState.modules[modIdx].steps.load.error = err.message;
+  }
+
+  updateStatsDashboard();
+  renderTesterTable();
+};
+
+if (pickTesterDirBtn) pickTesterDirBtn.addEventListener('click', pickTesterDir);
+if (runTesterBtn) runTesterBtn.addEventListener('click', runTester);
+if (cancelTesterBtn) cancelTesterBtn.addEventListener('click', cancelTester);
+
+if (testerSearchInput) testerSearchInput.addEventListener('input', renderTesterTable);
+if (testerTypeFilter) testerTypeFilter.addEventListener('change', renderTesterTable);
+if (testerStatusFilter) testerStatusFilter.addEventListener('change', renderTesterTable);
+
+if (window.api.onMassTesterUpdate) {
+  window.api.onMassTesterUpdate((update) => {
+    if (update.type === 'progress') {
+      update.results.forEach(res => {
+        const idx = testerState.modules.findIndex(m => m.folderName === res.folderName);
+        if (idx !== -1) {
+          testerState.modules[idx] = { ...testerState.modules[idx], ...res };
+        }
+      });
+      updateStatsDashboard();
+      renderTesterTable();
+    } else if (update.type === 'done') {
+      update.results.forEach(res => {
+        const idx = testerState.modules.findIndex(m => m.folderName === res.folderName);
+        if (idx !== -1) {
+          testerState.modules[idx] = res;
+        }
+      });
+      testerState.isTesting = false;
+      if (runTesterBtn) runTesterBtn.disabled = false;
+      if (pickTesterDirBtn) pickTesterDirBtn.disabled = false;
+      if (cancelTesterBtn) cancelTesterBtn.style.display = 'none';
+      updateStatsDashboard();
+      renderTesterTable();
+    } else if (update.type === 'error') {
+      testerState.isTesting = false;
+      if (runTesterBtn) runTesterBtn.disabled = false;
+      if (pickTesterDirBtn) pickTesterDirBtn.disabled = false;
+      if (cancelTesterBtn) cancelTesterBtn.style.display = 'none';
+      alert('Testing failed: ' + update.error);
+      updateStatsDashboard();
+      renderTesterTable();
+    }
+  });
+}
 
 (async () => {
   setStatus('Idle', '');

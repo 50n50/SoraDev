@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { spawn } from 'child_process';
 import { JSContext } from './src/services/jsContext.js';
+import { MassTester } from './src/services/massTester.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,6 +15,7 @@ let jsContext;
 let moduleWatcher = null;
 let currentModulePath = null;
 let currentModuleName = null;
+let activeMassTester = null;
 
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 
@@ -182,6 +184,101 @@ ipcMain.handle('pick-file', async () => {
   } catch (e) {
     log(`[ERROR] Failed to load module: ${e.message}`);
     return { error: e.message };
+  }
+});
+
+ipcMain.handle('pick-directory', async () => {
+  const settings = loadSettings();
+  const dialogOptions = {
+    properties: ['openDirectory']
+  };
+  
+  if (settings.lastModuleDirectory) {
+    dialogOptions.defaultPath = settings.lastModuleDirectory;
+  }
+  
+  const result = await dialog.showOpenDialog(mainWindow, dialogOptions);
+  if (result.canceled || result.filePaths.length === 0) {
+    return { canceled: true };
+  }
+  
+  const dirPath = result.filePaths[0];
+  settings.lastModuleDirectory = dirPath;
+  saveSettings(settings);
+  
+  log(`[INFO] Directory selected: ${dirPath}`);
+  
+  try {
+    const tester = new MassTester(__dirname);
+    const modules = await tester.scanDirectory(dirPath);
+    return { success: true, path: dirPath, modules };
+  } catch (err) {
+    return { success: true, path: dirPath, modules: [], error: err.message };
+  }
+});
+
+ipcMain.handle('run-mass-tester', async (event, dirPath, options) => {
+  if (activeMassTester) {
+    activeMassTester.cancel();
+  }
+  
+  log(`[INFO] Starting mass module testing on directory: ${dirPath}`);
+  activeMassTester = new MassTester(__dirname);
+  
+  try {
+    const results = await activeMassTester.runAllTests(
+      dirPath,
+      options,
+      (progressResults) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('mass-tester-update', { type: 'progress', results: progressResults });
+        }
+      },
+      (err, finalResults) => {
+        activeMassTester = null;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          if (err) {
+            log(`[ERROR] Mass tester failed: ${err.message}`);
+            mainWindow.webContents.send('mass-tester-update', { type: 'error', error: err.message });
+          } else {
+            log(`[SUCCESS] Mass testing completed!`);
+            mainWindow.webContents.send('mass-tester-update', { type: 'done', results: finalResults });
+          }
+        }
+      }
+    );
+    return { success: true, results };
+  } catch (err) {
+    activeMassTester = null;
+    log(`[ERROR] Mass tester runner exception: ${err.message}`);
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('cancel-mass-tester', () => {
+  if (activeMassTester) {
+    log(`[INFO] Cancelling active mass tester...`);
+    activeMassTester.cancel();
+    activeMassTester = null;
+    return { success: true };
+  }
+  return { success: false, message: 'No active testing running' };
+});
+
+ipcMain.handle('run-single-module-test', async (event, dirPath, folderName, customKeyword) => {
+  log(`[INFO] Running single module test: ${folderName} (keyword: ${customKeyword})`);
+  const tester = new MassTester(__dirname);
+  try {
+    const modules = await tester.scanDirectory(dirPath);
+    const targetMeta = modules.find(m => m.folderName === folderName);
+    if (!targetMeta) {
+      throw new Error(`Module folder not found: ${folderName}`);
+    }
+    const result = await tester.testModule(targetMeta, null, customKeyword);
+    return { success: true, result };
+  } catch (err) {
+    log(`[ERROR] Single module test failed for ${folderName}: ${err.message}`);
+    return { error: err.message };
   }
 });
 
